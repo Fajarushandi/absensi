@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Joki Game</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e2f;
+      color: white;
+      padding: 15px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      background: #4CAF50;
+      color: white;
+      font-weight: bold;
+    }
+
+    .card {
+      background: #2a2a40;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+      font-size: 14px;
+    }
+
+    .label {
+      color: #aaa;
+    }
+
+    .value {
+      font-weight: bold;
+    }
+
+    .hapus {
+      background: #e74c3c;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .nomor {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 5px;
+    }
+
+    #totalJam {
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📋 Absensi Joki Game</h2>
+
+<input type="text" id="nama" placeholder="Nama">
+<input type="date" id="tanggal">
+
+<label>Jam Masuk</label>
+<input type="time" id="jamMasuk">
+
+<label>Jam Pulang</label>
+<input type="time" id="jamPulang">
+
+<button onclick="simpan()">Simpan Absensi</button>
+
+<h3 id="totalJam"></h3>
+
+<div id="tabelAbsensi"></div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("absensi")) || [];
+
+// auto isi tanggal hari ini
+document.getElementById("tanggal").valueAsDate = new Date();
+
+function hitungDurasi(masuk, pulang) {
+  if (!masuk || !pulang) return "-";
+
+  let [jm, mm] = masuk.split(":").map(Number);
+  let [jp, mp] = pulang.split(":").map(Number);
+
+  let start = jm * 60 + mm;
+  let end = jp * 60 + mp;
+
+  if (end < start) end += 1440;
+
+  let total = end - start;
+  let jam = Math.floor(total / 60);
+  let menit = total % 60;
+
+  return `${jam} jam ${menit} menit`;
+}
+
+function render() {
+  let container = document.getElementById("tabelAbsensi");
+  let totalDisplay = document.getElementById("totalJam");
+
+  container.innerHTML = "";
+
+  let totalMenit = 0;
+
+  data.forEach((item, index) => {
+    let durasi = hitungDurasi(item.masuk, item.pulang);
+
+    let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
+
+    if (item.masuk && item.pulang) {
+      let [jm, mm] = item.masuk.split(":").map(Number);
+      let [jp, mp] = item.pulang.split(":").map(Number);
+
+      let start = jm * 60 + mm;
+      let end = jp * 60 + mp;
+
+      if (end < start) end += 1440;
+
+      totalMenit += (end - start);
+    }
+
+    container.innerHTML += `
+      <div class="card">
+        <div class="nomor">#${index + 1}</div>
+
+        <div class="row">
+          <span class="label">Nama</span>
+          <span class="value">${item.nama}</span>
+        </div>
+        <div class="row">
+          <span class="label">Tanggal</span>
+          <span class="value">${tgl}</span>
+        </div>
+        <div class="row">
+          <span class="label">Masuk</span>
+          <span class="value">${item.masuk || "-"}</span>
+        </div>
+        <div class="row">
+          <span class="label">Pulang</span>
+          <span class="value">${item.pulang || "-"}</span>
+        </div>
+        <div class="row">
+          <span class="label">Durasi</span>
+          <span class="value">${durasi}</span>
+        </div>
+
+        <button class="hapus" onclick="hapus(${index})">Hapus</button>
+      </div>
+    `;
+  });
+
+  let jam = Math.floor(totalMenit / 60);
+  let menit = totalMenit % 60;
+
+  totalDisplay.innerText = `Total Jam Kerja: ${jam} jam ${menit} menit`;
+}
+
+function simpan() {
+  let nama = document.getElementById("nama").value;
+  let tanggal = document.getElementById("tanggal").value;
+  let masuk = document.getElementById("jamMasuk").value;
+  let pulang = document.getElementById("jamPulang").value;
+
+  if (!nama || !tanggal) {
+    alert("Isi nama & tanggal dulu");
+    return;
+  }
+
+  data.push({ nama, tanggal, masuk, pulang });
+  localStorage.setItem("absensi", JSON.stringify(data));
+
+  // reset input
+  document.getElementById("jamMasuk").value = "";
+  document.getElementById("jamPulang").value = "";
+
+  render();
+}
+
+function hapus(index) {
+  if (confirm("Yakin mau hapus data ini?")) {
+    data.splice(index, 1);
+    localStorage.setItem("absensi", JSON.stringify(data));
+    render();
+  }
+}
+
+render();
+</script>
+
+</body>
+</html>

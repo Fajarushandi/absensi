@@ -1,80 +1,71 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absensi Joki Game</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absensi Joki Game</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1e1e2f;
-      color: white;
-      padding: 15px;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #1e1e2f;
+  color: white;
+  padding: 15px;
+}
 
-    h2 {
-      text-align: center;
-    }
+h2 { text-align: center; }
 
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 6px 0;
-      border-radius: 12px;
-      border: none;
-      font-size: 16px;
-    }
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+}
 
-    button {
-      background: #4CAF50;
-      color: white;
-      font-weight: bold;
-    }
+button {
+  background: #4CAF50;
+  color: white;
+  font-weight: bold;
+}
 
-    .card {
-      background: #2a2a40;
-      border-radius: 12px;
-      padding: 12px;
-      margin-top: 10px;
-    }
+.card {
+  background: #2a2a40;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 10px;
+}
 
-    .row {
-      display: flex;
-      justify-content: space-between;
-      margin: 4px 0;
-      font-size: 14px;
-    }
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0;
+  font-size: 14px;
+}
 
-    .label {
-      color: #aaa;
-    }
+.label { color: #aaa; }
+.value { font-weight: bold; }
 
-    .value {
-      font-weight: bold;
-    }
+.hapus {
+  background: #e74c3c;
+  margin-top: 10px;
+}
 
-    .hapus {
-      background: #e74c3c;
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 10px;
-    }
+.nomor {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 5px;
+}
 
-    .nomor {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 5px;
-    }
-
-    #totalJam {
-      text-align: center;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-  </style>
+#totalJam {
+  text-align: center;
+  margin-top: 10px;
+  font-weight: bold;
+}
+</style>
 </head>
+
 <body>
 
 <h2>📋 Absensi Joki Game</h2>
@@ -89,15 +80,37 @@
 <input type="time" id="jamPulang">
 
 <button onclick="simpan()">Simpan Absensi</button>
+<button onclick="exportPDF()">Export ke PDF</button>
 
 <h3 id="totalJam"></h3>
-
 <div id="tabelAbsensi"></div>
+
+<!-- AREA KHUSUS PDF -->
+<div id="pdfArea" style="display:none; background:white; color:black; padding:20px;">
+  <h2 style="text-align:center;">ABSENSI JOKI GAME</h2>
+
+  <table border="1" style="width:100%; border-collapse:collapse; font-size:12px;">
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Nama</th>
+        <th>Tanggal</th>
+        <th>Masuk</th>
+        <th>Pulang</th>
+        <th>Durasi</th>
+      </tr>
+    </thead>
+    <tbody id="pdfTable"></tbody>
+  </table>
+
+  <h3 id="pdfTotal" style="margin-top:10px;"></h3>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
 let data = JSON.parse(localStorage.getItem("absensi")) || [];
 
-// auto isi tanggal hari ini
 document.getElementById("tanggal").valueAsDate = new Date();
 
 function hitungDurasi(masuk, pulang) {
@@ -123,12 +136,10 @@ function render() {
   let totalDisplay = document.getElementById("totalJam");
 
   container.innerHTML = "";
-
   let totalMenit = 0;
 
   data.forEach((item, index) => {
     let durasi = hitungDurasi(item.masuk, item.pulang);
-
     let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
 
     if (item.masuk && item.pulang) {
@@ -147,26 +158,11 @@ function render() {
       <div class="card">
         <div class="nomor">#${index + 1}</div>
 
-        <div class="row">
-          <span class="label">Nama</span>
-          <span class="value">${item.nama}</span>
-        </div>
-        <div class="row">
-          <span class="label">Tanggal</span>
-          <span class="value">${tgl}</span>
-        </div>
-        <div class="row">
-          <span class="label">Masuk</span>
-          <span class="value">${item.masuk || "-"}</span>
-        </div>
-        <div class="row">
-          <span class="label">Pulang</span>
-          <span class="value">${item.pulang || "-"}</span>
-        </div>
-        <div class="row">
-          <span class="label">Durasi</span>
-          <span class="value">${durasi}</span>
-        </div>
+        <div class="row"><span class="label">Nama</span><span class="value">${item.nama}</span></div>
+        <div class="row"><span class="label">Tanggal</span><span class="value">${tgl}</span></div>
+        <div class="row"><span class="label">Masuk</span><span class="value">${item.masuk || "-"}</span></div>
+        <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
+        <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
 
         <button class="hapus" onclick="hapus(${index})">Hapus</button>
       </div>
@@ -193,7 +189,6 @@ function simpan() {
   data.push({ nama, tanggal, masuk, pulang });
   localStorage.setItem("absensi", JSON.stringify(data));
 
-  // reset input
   document.getElementById("jamMasuk").value = "";
   document.getElementById("jamPulang").value = "";
 
@@ -206,6 +201,54 @@ function hapus(index) {
     localStorage.setItem("absensi", JSON.stringify(data));
     render();
   }
+}
+
+function exportPDF() {
+  let pdfTable = document.getElementById("pdfTable");
+  let pdfTotal = document.getElementById("pdfTotal");
+
+  pdfTable.innerHTML = "";
+  let totalMenit = 0;
+
+  data.forEach((item, index) => {
+    let durasi = hitungDurasi(item.masuk, item.pulang);
+    let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
+
+    if (item.masuk && item.pulang) {
+      let [jm, mm] = item.masuk.split(":").map(Number);
+      let [jp, mp] = item.pulang.split(":").map(Number);
+
+      let start = jm * 60 + mm;
+      let end = jp * 60 + mp;
+
+      if (end < start) end += 1440;
+
+      totalMenit += (end - start);
+    }
+
+    pdfTable.innerHTML += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${item.nama}</td>
+        <td>${tgl}</td>
+        <td>${item.masuk || "-"}</td>
+        <td>${item.pulang || "-"}</td>
+        <td>${durasi}</td>
+      </tr>
+    `;
+  });
+
+  let jam = Math.floor(totalMenit / 60);
+  let menit = totalMenit % 60;
+
+  pdfTotal.innerText = `Total Jam Kerja: ${jam} jam ${menit} menit`;
+
+  let element = document.getElementById("pdfArea");
+  element.style.display = "block";
+
+  html2pdf().from(element).save("absensi-rapi.pdf").then(() => {
+    element.style.display = "none";
+  });
 }
 
 render();

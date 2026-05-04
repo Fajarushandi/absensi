@@ -85,11 +85,17 @@ button {
 <h3 id="totalJam"></h3>
 <div id="tabelAbsensi"></div>
 
-<!-- AREA KHUSUS PDF -->
+<!-- AREA PDF -->
 <div id="pdfArea" style="display:none; background:white; color:black; padding:20px;">
-  <h2 style="text-align:center;">ABSENSI JOKI GAME</h2>
+  <div style="text-align:center; margin-bottom:10px;">
+    <h2>ABSENSI JOKI GAME</h2>
+    <div id="pdfNama"></div>
+    <div id="pdfPeriode"></div>
+  </div>
 
-  <table border="1" style="width:100%; border-collapse:collapse; font-size:12px;">
+  <hr>
+
+  <table border="1" style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;">
     <thead>
       <tr>
         <th>No</th>
@@ -206,9 +212,29 @@ function hapus(index) {
 function exportPDF() {
   let pdfTable = document.getElementById("pdfTable");
   let pdfTotal = document.getElementById("pdfTotal");
+  let pdfNama = document.getElementById("pdfNama");
+  let pdfPeriode = document.getElementById("pdfPeriode");
 
   pdfTable.innerHTML = "";
   let totalMenit = 0;
+
+  let sorted = [...data].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+  let firstDate = new Date(sorted[0]?.tanggal || new Date());
+  let lastDate = new Date(sorted[sorted.length - 1]?.tanggal || new Date());
+
+  let bulanAwal = firstDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  let bulanAkhir = lastDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+
+  let namaUser = data.length > 0 ? data[0].nama : "-";
+
+  pdfNama.innerText = "Nama: " + namaUser;
+
+  if (bulanAwal === bulanAkhir) {
+    pdfPeriode.innerText = "Periode: " + bulanAwal;
+  } else {
+    pdfPeriode.innerText = "Periode: " + bulanAwal + " - " + bulanAkhir;
+  }
 
   data.forEach((item, index) => {
     let durasi = hitungDurasi(item.masuk, item.pulang);
@@ -246,7 +272,12 @@ function exportPDF() {
   let element = document.getElementById("pdfArea");
   element.style.display = "block";
 
-  html2pdf().from(element).save("absensi-rapi.pdf").then(() => {
+  html2pdf().set({
+    margin: 0.3,
+    filename: "absensi-rapi.pdf",
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }).from(element).save().then(() => {
     element.style.display = "none";
   });
 }

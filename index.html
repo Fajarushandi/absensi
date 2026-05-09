@@ -11,9 +11,20 @@ body {
   background: #1e1e2f;
   color: white;
   padding: 15px;
+  padding-bottom: 50px;
 }
 
-h2 { text-align: center; }
+h2 {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
 
 input, button {
   width: 100%;
@@ -46,6 +57,7 @@ button:hover {
   margin-top: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   transition: 0.3s;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .card:hover {
@@ -59,8 +71,17 @@ button:hover {
   font-size: 14px;
 }
 
-.label { color: #aaa; }
-.value { font-weight: bold; }
+.label {
+  color: #aaa;
+}
+
+.value {
+  font-weight: bold;
+}
+
+.edit {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
 
 .hapus {
   background: linear-gradient(135deg, #e74c3c, #c0392b);
@@ -82,10 +103,17 @@ button:hover {
   margin-top: 15px;
   font-weight: bold;
   background: #2a2a40;
-  padding: 12px;
+  padding: 14px;
   border-radius: 14px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   font-size: 18px;
+  line-height: 1.5;
+}
+
+.empty {
+  text-align: center;
+  color: #aaa;
+  padding: 20px;
 }
 </style>
 </head>
@@ -94,7 +122,10 @@ button:hover {
 
 <h2>📋 Absensi Joki Game</h2>
 
+<label>Nama</label>
 <input type="text" id="nama" placeholder="Nama">
+
+<label>Tanggal</label>
 <input type="date" id="tanggal">
 
 <label>Jam Masuk</label>
@@ -212,16 +243,27 @@ function render() {
         <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
         <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
 
-        <button onclick="editData(${item.asli})">Edit</button>
+        <button class="edit" onclick="editData(${item.asli})">Edit</button>
         <button class="hapus" onclick="hapus(${item.asli})">Hapus</button>
       </div>
     `;
   });
 
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="card empty">
+        Belum ada data absensi
+      </div>
+    `;
+  }
+
   let jam = Math.floor(totalMenit / 60);
   let menit = totalMenit % 60;
 
-  totalDisplay.innerText = `Total Jam Kerja: ${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit`;
+  totalDisplay.innerHTML = `
+    ⏱ Total Jam Kerja<br>
+    ${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit
+  `;
 }
 
 function simpan() {
@@ -242,6 +284,7 @@ function simpan() {
   document.getElementById("jamMasuk").value = "";
   document.getElementById("jamPulang").value = "";
 
+  alert("Data berhasil disimpan");
   render();
 }
 

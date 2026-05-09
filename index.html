@@ -22,19 +22,34 @@ input, button {
   border-radius: 12px;
   border: none;
   font-size: 16px;
+  box-sizing: border-box;
 }
 
 button {
-  background: #4CAF50;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
   color: white;
   font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  opacity: 0.95;
 }
 
 .card {
   background: #2a2a40;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 12px;
   margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: scale(1.02);
 }
 
 .row {
@@ -48,8 +63,12 @@ button {
 .value { font-weight: bold; }
 
 .hapus {
-  background: #e74c3c;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
   margin-top: 10px;
+}
+
+.reset {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
 }
 
 .nomor {
@@ -60,8 +79,13 @@ button {
 
 #totalJam {
   text-align: center;
-  margin-top: 10px;
+  margin-top: 15px;
   font-weight: bold;
+  background: #2a2a40;
+  padding: 12px;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  font-size: 18px;
 }
 </style>
 </head>
@@ -81,11 +105,13 @@ button {
 
 <button onclick="simpan()">Simpan Absensi</button>
 <button onclick="exportPDF()">Export ke PDF</button>
+<button onclick="resetData()" class="reset">Reset Semua Data</button>
+
+<input type="text" id="search" placeholder="Cari nama..." onkeyup="render()">
 
 <h3 id="totalJam"></h3>
 <div id="tabelAbsensi"></div>
 
-<!-- AREA PDF -->
 <div id="pdfArea" style="display:none; background:white; color:black; padding:20px;">
   <div style="text-align:center; margin-bottom:10px;">
     <h2>ABSENSI JOKI GAME</h2>
@@ -134,7 +160,21 @@ function hitungDurasi(masuk, pulang) {
   let jam = Math.floor(total / 60);
   let menit = total % 60;
 
-  return `${jam} jam ${menit} menit`;
+  return `${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit`;
+}
+
+function hitungMenit(masuk, pulang) {
+  if (!masuk || !pulang) return 0;
+
+  let [jm, mm] = masuk.split(":").map(Number);
+  let [jp, mp] = pulang.split(":").map(Number);
+
+  let start = jm * 60 + mm;
+  let end = jp * 60 + mp;
+
+  if (end < start) end += 1440;
+
+  return end - start;
 }
 
 function render() {
@@ -144,21 +184,23 @@ function render() {
   container.innerHTML = "";
   let totalMenit = 0;
 
-  data.forEach((item, index) => {
+  data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+  localStorage.setItem("absensi", JSON.stringify(data));
+
+  let keyword = document.getElementById("search").value.toLowerCase();
+
+  let filtered = data.map((item, index) => ({
+    ...item,
+    asli: index
+  })).filter(item =>
+    item.nama.toLowerCase().includes(keyword)
+  );
+
+  filtered.forEach((item, index) => {
     let durasi = hitungDurasi(item.masuk, item.pulang);
     let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
 
-    if (item.masuk && item.pulang) {
-      let [jm, mm] = item.masuk.split(":").map(Number);
-      let [jp, mp] = item.pulang.split(":").map(Number);
-
-      let start = jm * 60 + mm;
-      let end = jp * 60 + mp;
-
-      if (end < start) end += 1440;
-
-      totalMenit += (end - start);
-    }
+    totalMenit += hitungMenit(item.masuk, item.pulang);
 
     container.innerHTML += `
       <div class="card">
@@ -170,7 +212,8 @@ function render() {
         <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
         <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
 
-        <button class="hapus" onclick="hapus(${index})">Hapus</button>
+        <button onclick="editData(${item.asli})">Edit</button>
+        <button class="hapus" onclick="hapus(${item.asli})">Hapus</button>
       </div>
     `;
   });
@@ -178,11 +221,11 @@ function render() {
   let jam = Math.floor(totalMenit / 60);
   let menit = totalMenit % 60;
 
-  totalDisplay.innerText = `Total Jam Kerja: ${jam} jam ${menit} menit`;
+  totalDisplay.innerText = `Total Jam Kerja: ${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit`;
 }
 
 function simpan() {
-  let nama = document.getElementById("nama").value;
+  let nama = document.getElementById("nama").value.trim();
   let tanggal = document.getElementById("tanggal").value;
   let masuk = document.getElementById("jamMasuk").value;
   let pulang = document.getElementById("jamPulang").value;
@@ -195,6 +238,7 @@ function simpan() {
   data.push({ nama, tanggal, masuk, pulang });
   localStorage.setItem("absensi", JSON.stringify(data));
 
+  document.getElementById("nama").value = "";
   document.getElementById("jamMasuk").value = "";
   document.getElementById("jamPulang").value = "";
 
@@ -209,7 +253,34 @@ function hapus(index) {
   }
 }
 
+function editData(index) {
+  let item = data[index];
+
+  document.getElementById("nama").value = item.nama;
+  document.getElementById("tanggal").value = item.tanggal;
+  document.getElementById("jamMasuk").value = item.masuk;
+  document.getElementById("jamPulang").value = item.pulang;
+
+  data.splice(index, 1);
+  localStorage.setItem("absensi", JSON.stringify(data));
+
+  render();
+}
+
+function resetData() {
+  if (confirm("Yakin mau hapus semua data?")) {
+    localStorage.removeItem("absensi");
+    data = [];
+    render();
+  }
+}
+
 function exportPDF() {
+  if (data.length === 0) {
+    alert("Belum ada data absensi");
+    return;
+  }
+
   let pdfTable = document.getElementById("pdfTable");
   let pdfTotal = document.getElementById("pdfTotal");
   let pdfNama = document.getElementById("pdfNama");
@@ -220,8 +291,8 @@ function exportPDF() {
 
   let sorted = [...data].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
 
-  let firstDate = new Date(sorted[0]?.tanggal || new Date());
-  let lastDate = new Date(sorted[sorted.length - 1]?.tanggal || new Date());
+  let firstDate = new Date(sorted[0].tanggal);
+  let lastDate = new Date(sorted[sorted.length - 1].tanggal);
 
   let bulanAwal = firstDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
   let bulanAkhir = lastDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
@@ -236,21 +307,11 @@ function exportPDF() {
     pdfPeriode.innerText = "Periode: " + bulanAwal + " - " + bulanAkhir;
   }
 
-  data.forEach((item, index) => {
+  sorted.forEach((item, index) => {
     let durasi = hitungDurasi(item.masuk, item.pulang);
     let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
 
-    if (item.masuk && item.pulang) {
-      let [jm, mm] = item.masuk.split(":").map(Number);
-      let [jp, mp] = item.pulang.split(":").map(Number);
-
-      let start = jm * 60 + mm;
-      let end = jp * 60 + mp;
-
-      if (end < start) end += 1440;
-
-      totalMenit += (end - start);
-    }
+    totalMenit += hitungMenit(item.masuk, item.pulang);
 
     pdfTable.innerHTML += `
       <tr>
@@ -267,7 +328,7 @@ function exportPDF() {
   let jam = Math.floor(totalMenit / 60);
   let menit = totalMenit % 60;
 
-  pdfTotal.innerText = `Total Jam Kerja: ${jam} jam ${menit} menit`;
+  pdfTotal.innerText = `Total Jam Kerja: ${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit`;
 
   let element = document.getElementById("pdfArea");
   element.style.display = "block";
@@ -276,7 +337,7 @@ function exportPDF() {
     margin: 0.3,
     filename: "absensi-rapi.pdf",
     html2canvas: { scale: 2 },
-    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
   }).from(element).save().then(() => {
     element.style.display = "none";
   });

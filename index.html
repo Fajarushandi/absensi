@@ -45,29 +45,55 @@ button {
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-button:hover {
-  transform: translateY(-2px);
-  opacity: 0.95;
-}
-
 .card {
   background: #2a2a40;
   border-radius: 16px;
-  padding: 12px;
+  padding: 14px;
   margin-top: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transition: 0.3s;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
-.card:hover {
-  transform: scale(1.02);
+.summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  align-items: center;
+}
+
+.summary-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-name {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.summary-date {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.summary-duration {
+  font-weight: bold;
+  text-align: right;
+}
+
+.detail {
+  display: none;
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 10px;
 }
 
 .row {
   display: flex;
   justify-content: space-between;
-  margin: 4px 0;
+  margin: 5px 0;
   font-size: 14px;
 }
 
@@ -83,19 +109,8 @@ button:hover {
   background: linear-gradient(135deg, #3498db, #2980b9);
 }
 
-.hapus {
+.hapus, .reset {
   background: linear-gradient(135deg, #e74c3c, #c0392b);
-  margin-top: 10px;
-}
-
-.reset {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-}
-
-.nomor {
-  font-size: 12px;
-  color: #888;
-  margin-bottom: 5px;
 }
 
 #totalJam {
@@ -143,16 +158,14 @@ button:hover {
 <h3 id="totalJam"></h3>
 <div id="tabelAbsensi"></div>
 
-<div id="pdfArea" style="display:none; background:white; color:black; padding:20px;">
-  <div style="text-align:center; margin-bottom:10px;">
+<div id="pdfArea" style="display:none; width:1100px; background:white; color:black; padding:30px; font-family:Arial;">
+  <div style="text-align:center; margin-bottom:15px;">
     <h2>ABSENSI JOKI GAME</h2>
     <div id="pdfNama"></div>
     <div id="pdfPeriode"></div>
   </div>
 
-  <hr>
-
-  <table border="1" style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;">
+  <table border="1" style="width:100%; border-collapse:collapse; font-size:14px; text-align:center;">
     <thead>
       <tr>
         <th>No</th>
@@ -166,7 +179,7 @@ button:hover {
     <tbody id="pdfTable"></tbody>
   </table>
 
-  <h3 id="pdfTotal" style="margin-top:10px;"></h3>
+  <h3 id="pdfTotal" style="margin-top:15px;"></h3>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -191,7 +204,7 @@ function hitungDurasi(masuk, pulang) {
   let jam = Math.floor(total / 60);
   let menit = total % 60;
 
-  return `${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit`;
+  return `${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit`;
 }
 
 function hitungMenit(masuk, pulang) {
@@ -206,6 +219,16 @@ function hitungMenit(masuk, pulang) {
   if (end < start) end += 1440;
 
   return end - start;
+}
+
+function toggleDetail(id) {
+  let detail = document.getElementById(id);
+
+  if (detail.style.display === "block") {
+    detail.style.display = "none";
+  } else {
+    detail.style.display = "block";
+  }
 }
 
 function render() {
@@ -230,21 +253,34 @@ function render() {
   filtered.forEach((item, index) => {
     let durasi = hitungDurasi(item.masuk, item.pulang);
     let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
+    let detailId = `detail-${index}`;
 
     totalMenit += hitungMenit(item.masuk, item.pulang);
 
     container.innerHTML += `
       <div class="card">
-        <div class="nomor">#${index + 1}</div>
+        <div class="summary" onclick="toggleDetail('${detailId}')">
+          <div class="summary-left">
+            <div class="summary-name">#${index + 1} ${item.nama}</div>
+            <div class="summary-date">${tgl}</div>
+          </div>
 
-        <div class="row"><span class="label">Nama</span><span class="value">${item.nama}</span></div>
-        <div class="row"><span class="label">Tanggal</span><span class="value">${tgl}</span></div>
-        <div class="row"><span class="label">Masuk</span><span class="value">${item.masuk || "-"}</span></div>
-        <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
-        <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
+          <div class="summary-duration">
+            ${durasi}<br>
+            <span style="font-size:12px; color:#aaa;">Tap detail</span>
+          </div>
+        </div>
 
-        <button class="edit" onclick="editData(${item.asli})">Edit</button>
-        <button class="hapus" onclick="hapus(${item.asli})">Hapus</button>
+        <div class="detail" id="${detailId}">
+          <div class="row"><span class="label">Nama</span><span class="value">${item.nama}</span></div>
+          <div class="row"><span class="label">Tanggal</span><span class="value">${tgl}</span></div>
+          <div class="row"><span class="label">Masuk</span><span class="value">${item.masuk || "-"}</span></div>
+          <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
+          <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
+
+          <button class="edit" onclick="editData(${item.asli})">Edit</button>
+          <button class="hapus" onclick="hapus(${item.asli})">Hapus</button>
+        </div>
       </div>
     `;
   });
@@ -262,7 +298,7 @@ function render() {
 
   totalDisplay.innerHTML = `
     ⏱ Total Jam Kerja<br>
-    ${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit
+    ${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit
   `;
 }
 
@@ -308,6 +344,7 @@ function editData(index) {
   localStorage.setItem("absensi", JSON.stringify(data));
 
   render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function resetData() {
@@ -340,9 +377,7 @@ function exportPDF() {
   let bulanAwal = firstDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
   let bulanAkhir = lastDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
-  let namaUser = data.length > 0 ? data[0].nama : "-";
-
-  pdfNama.innerText = "Nama: " + namaUser;
+  pdfNama.innerText = "Nama: " + sorted[0].nama;
 
   if (bulanAwal === bulanAkhir) {
     pdfPeriode.innerText = "Periode: " + bulanAwal;
@@ -371,16 +406,23 @@ function exportPDF() {
   let jam = Math.floor(totalMenit / 60);
   let menit = totalMenit % 60;
 
-  pdfTotal.innerText = `Total Jam Kerja: ${String(jam).padStart(2, '0')} jam ${String(menit).padStart(2, '0')} menit`;
+  pdfTotal.innerText = `Total Jam Kerja: ${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit`;
 
   let element = document.getElementById("pdfArea");
   element.style.display = "block";
 
   html2pdf().set({
-    margin: 0.3,
-    filename: "absensi-rapi.pdf",
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
+    margin: 0.4,
+    filename: "absensi-joki-game.pdf",
+    html2canvas: {
+      scale: 2,
+      scrollY: 0
+    },
+    jsPDF: {
+      unit: "in",
+      format: "a4",
+      orientation: "landscape"
+    }
   }).from(element).save().then(() => {
     element.style.display = "none";
   });

@@ -167,6 +167,8 @@
       <script>
          let data = JSON.parse(localStorage.getItem("absensi")) || [];
          
+         let editIndex = null;
+         
          document.getElementById("tanggal").valueAsDate = new Date();
          
          function hitungDurasi(masuk, pulang) {
@@ -286,17 +288,33 @@
              return;
            }
          
-           let nomorBaru = data.length > 0
-           ? Math.max(...data.map(item => item.nomor || 0)) + 1
-           : 1;
+           if (editIndex !== null) {
+         
+         data[editIndex] = {
+         ...data[editIndex],
+         nama,
+         tanggal,
+         masuk,
+         pulang
+         };
+         
+         editIndex = null;
+         
+         } else {
+         
+         let nomorBaru = data.length > 0
+         ? Math.max(...data.map(item => item.nomor || 0)) + 1
+         : 1;
          
          data.push({
-           nomor: nomorBaru,
-           nama,
-           tanggal,
-           masuk,
-           pulang
+         nomor: nomorBaru,
+         nama,
+         tanggal,
+         masuk,
+         pulang
          });
+         
+         }
            localStorage.setItem("absensi", JSON.stringify(data));
          
            document.getElementById("nama").value = "";
@@ -308,26 +326,24 @@
          }
          
          function hapus(index) {
-           if (confirm("Yakin mau hapus data ini?")) {
-             data.splice(index, 1);
-             localStorage.setItem("absensi", JSON.stringify(data));
-             render();
-           }
+         if (confirm("Yakin mau hapus data ini?")) {
+         data.splice(index, 1);
+         localStorage.setItem("absensi", JSON.stringify(data));
+         render();
+         }
          }
          
          function editData(index) {
-           let item = data[index];
+         let item = data[index];
          
-           document.getElementById("nama").value = item.nama;
-           document.getElementById("tanggal").value = item.tanggal;
-           document.getElementById("jamMasuk").value = item.masuk;
-           document.getElementById("jamPulang").value = item.pulang;
+         document.getElementById("nama").value = item.nama;
+         document.getElementById("tanggal").value = item.tanggal;
+         document.getElementById("jamMasuk").value = item.masuk;
+         document.getElementById("jamPulang").value = item.pulang;
          
-           data.splice(index, 1);
-           localStorage.setItem("absensi", JSON.stringify(data));
+         editIndex = index;
          
-           render();
-           window.scrollTo({ top: 0, behavior: "smooth" });
+         window.scrollTo({ top: 0, behavior: "smooth" });
          }
          
          function resetData() {

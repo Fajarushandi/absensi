@@ -1,446 +1,417 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Absensi Kerja</title>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #1e1e2f;
-  color: white;
-  padding: 15px;
-  padding-bottom: 50px;
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-label {
-  display: block;
-  margin-top: 10px;
-  margin-bottom: 4px;
-  font-size: 15px;
-}
-
-input, button {
-  width: 100%;
-  padding: 12px;
-  margin: 6px 0;
-  border-radius: 12px;
-  border: none;
-  font-size: 16px;
-  box-sizing: border-box;
-}
-
-button {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-
-.card {
-  background: #2a2a40;
-  border-radius: 16px;
-  padding: 14px;
-  margin-top: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.06);
-}
-
-.summary {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-  align-items: center;
-}
-
-.summary-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.summary-name {
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.summary-date {
-  font-size: 13px;
-  color: #aaa;
-}
-
-.summary-duration {
-  font-weight: bold;
-  text-align: right;
-}
-
-.detail {
-  display: none;
-  margin-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  padding-top: 10px;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  margin: 5px 0;
-  font-size: 14px;
-}
-
-.label {
-  color: #aaa;
-}
-
-.value {
-  font-weight: bold;
-}
-
-.edit {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-}
-
-.hapus, .reset {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-}
-
-#totalJam {
-  text-align: center;
-  margin-top: 15px;
-  font-weight: bold;
-  background: #2a2a40;
-  padding: 14px;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  font-size: 18px;
-  line-height: 1.5;
-}
-
-.empty {
-  text-align: center;
-  color: #aaa;
-  padding: 20px;
-}
-</style>
-</head>
-
-<body>
-
-<h2>📋 Absensi Kerja</h2>
-
-<label>Nama</label>
-<input type="text" id="nama" placeholder="Nama">
-
-<label>Tanggal</label>
-<input type="date" id="tanggal">
-
-<label>Jam Masuk</label>
-<input type="time" id="jamMasuk">
-
-<label>Jam Pulang</label>
-<input type="time" id="jamPulang">
-
-<button onclick="simpan()">Simpan Absensi</button>
-<button onclick="exportPDF()">Export ke PDF</button>
-<button onclick="resetData()" class="reset">Reset Semua Data</button>
-
-<h3 id="totalJam"></h3>
-<div id="tabelAbsensi"></div>
-
-<div id="pdfArea" style="
-display:none;
-width:1100px;
-background:white;
-color:black;
-padding:30px;
-font-family:Arial;
-">
-
-  <div style="text-align:center; margin-bottom:15px;">
-    <h2>ABSENSI KERJA</h2>
-    <div id="pdfNama"></div>
-    <div id="pdfPeriode"></div>
-  </div>
-
-  <table style="
-  width:100%;
-  border-collapse:collapse;
-  font-size:14px;
-  text-align:center;
-  border:2px solid black;
-  margin-top:15px;
-  ">
-
-    <thead>
-      <tr>
-        <th style="border:1px solid black; padding:6px;">No</th>
-        <th style="border:1px solid black; padding:6px;">Nama</th>
-        <th style="border:1px solid black; padding:6px;">Tanggal</th>
-        <th style="border:1px solid black; padding:6px;">Masuk</th>
-        <th style="border:1px solid black; padding:6px;">Pulang</th>
-        <th style="border:1px solid black; padding:6px;">Durasi</th>
-      </tr>
-    </thead>
-
-    <tbody id="pdfTable"></tbody>
-  </table>
-
-  <h3 id="pdfTotal" style="margin-top:15px;"></h3>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-<script>
-let data = JSON.parse(localStorage.getItem("absensi")) || [];
-
-document.getElementById("tanggal").valueAsDate = new Date();
-
-function hitungDurasi(masuk, pulang) {
-  if (!masuk || !pulang) return "-";
-
-  let [jm, mm] = masuk.split(":").map(Number);
-  let [jp, mp] = pulang.split(":").map(Number);
-
-  let start = jm * 60 + mm;
-  let end = jp * 60 + mp;
-
-  if (end < start) end += 1440;
-
-  let total = end - start;
-  let jam = Math.floor(total / 60);
-  let menit = total % 60;
-
-  return `${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit`;
-}
-
-function hitungMenit(masuk, pulang) {
-  if (!masuk || !pulang) return 0;
-
-  let [jm, mm] = masuk.split(":").map(Number);
-  let [jp, mp] = pulang.split(":").map(Number);
-
-  let start = jm * 60 + mm;
-  let end = jp * 60 + mp;
-
-  if (end < start) end += 1440;
-
-  return end - start;
-}
-
-function toggleDetail(id) {
-  let detail = document.getElementById(id);
-
-  if (detail.style.display === "block") {
-    detail.style.display = "none";
-  } else {
-    detail.style.display = "block";
-  }
-}
-
-function render() {
-  let container = document.getElementById("tabelAbsensi");
-  let totalDisplay = document.getElementById("totalJam");
-
-  container.innerHTML = "";
-  let totalMenit = 0;
-
-  data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-  localStorage.setItem("absensi", JSON.stringify(data));
-
-  let filtered = data.map((item, index) => ({
-    ...item,
-    asli: index
-  }));
-
-  filtered.forEach((item, index) => {
-    let durasi = hitungDurasi(item.masuk, item.pulang);
-    let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
-    let detailId = `detail-${index}`;
-
-    totalMenit += hitungMenit(item.masuk, item.pulang);
-
-    container.innerHTML += `
-      <div class="card">
-        <div class="summary" onclick="toggleDetail('${detailId}')">
-          <div class="summary-left">
-            <div class="summary-name">#${index + 1} ${item.nama}</div>
-            <div class="summary-date">${tgl}</div>
-          </div>
-
-          <div class="summary-duration">
-            ${durasi}<br>
-            <span style="font-size:12px; color:#aaa;">Tap detail</span>
-          </div>
-        </div>
-
-        <div class="detail" id="${detailId}">
-          <div class="row"><span class="label">Nama</span><span class="value">${item.nama}</span></div>
-          <div class="row"><span class="label">Tanggal</span><span class="value">${tgl}</span></div>
-          <div class="row"><span class="label">Masuk</span><span class="value">${item.masuk || "-"}</span></div>
-          <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
-          <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
-
-          <button class="edit" onclick="editData(${item.asli})">Edit</button>
-          <button class="hapus" onclick="hapus(${item.asli})">Hapus</button>
-        </div>
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Absensi Kerja</title>
+      <style>
+         body {
+         font-family: Arial, sans-serif;
+         background: #1e1e2f;
+         color: white;
+         padding: 15px;
+         padding-bottom: 50px;
+         }
+         h2 {
+         text-align: center;
+         margin-bottom: 25px;
+         }
+         label {
+         display: block;
+         margin-top: 10px;
+         margin-bottom: 4px;
+         font-size: 15px;
+         }
+         input, button {
+         width: 100%;
+         padding: 12px;
+         margin: 6px 0;
+         border-radius: 12px;
+         border: none;
+         font-size: 16px;
+         box-sizing: border-box;
+         }
+         button {
+         background: linear-gradient(135deg, #4CAF50, #45a049);
+         color: white;
+         font-weight: bold;
+         cursor: pointer;
+         transition: 0.3s;
+         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+         }
+         .card {
+         background: #2a2a40;
+         border-radius: 16px;
+         padding: 14px;
+         margin-top: 10px;
+         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+         border: 1px solid rgba(255,255,255,0.06);
+         }
+         .summary {
+         display: flex;
+         justify-content: space-between;
+         gap: 10px;
+         cursor: pointer;
+         align-items: center;
+         }
+         .summary-left {
+         display: flex;
+         flex-direction: column;
+         gap: 4px;
+         }
+         .summary-name {
+         font-weight: bold;
+         font-size: 16px;
+         }
+         .summary-date {
+         font-size: 13px;
+         color: #aaa;
+         }
+         .summary-duration {
+         font-weight: bold;
+         text-align: right;
+         }
+         .detail {
+         display: none;
+         margin-top: 12px;
+         border-top: 1px solid rgba(255,255,255,0.08);
+         padding-top: 10px;
+         }
+         .row {
+         display: flex;
+         justify-content: space-between;
+         margin: 5px 0;
+         font-size: 14px;
+         }
+         .label {
+         color: #aaa;
+         }
+         .value {
+         font-weight: bold;
+         }
+         .edit {
+         background: linear-gradient(135deg, #3498db, #2980b9);
+         }
+         .hapus, .reset {
+         background: linear-gradient(135deg, #e74c3c, #c0392b);
+         }
+         #totalJam {
+         text-align: center;
+         margin-top: 15px;
+         font-weight: bold;
+         background: #2a2a40;
+         padding: 14px;
+         border-radius: 14px;
+         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+         font-size: 18px;
+         line-height: 1.5;
+         }
+         .empty {
+         text-align: center;
+         color: #aaa;
+         padding: 20px;
+         }
+      </style>
+   </head>
+   <body>
+      <h2>📋 Absensi Kerja</h2>
+      <label>Nama</label>
+      <input type="text" id="nama" placeholder="Nama">
+      <label>Tanggal</label>
+      <input type="date" id="tanggal">
+      <label>Jam Masuk</label>
+      <input type="time" id="jamMasuk">
+      <label>Jam Pulang</label>
+      <input type="time" id="jamPulang">
+      <button onclick="simpan()">Simpan Absensi</button>
+      <button onclick="exportPDF()">Export ke PDF</button>
+      <button onclick="resetData()" class="reset">Reset Semua Data</button>
+      <h3 id="totalJam"></h3>
+      <div id="tabelAbsensi"></div>
+      <div id="pdfArea" style="
+         display:none;
+         width:1100px;
+         background:white;
+         color:black;
+         padding:30px;
+         font-family:Arial;
+         ">
+         <div style="text-align:center; margin-bottom:15px;">
+            <h2>ABSENSI KERJA</h2>
+            <div id="pdfNama"></div>
+            <div id="pdfPeriode"></div>
+         </div>
+         <table style="
+            width:100%;
+            border-collapse:collapse;
+            font-size:14px;
+            text-align:center;
+            border:2px solid black;
+            margin-top:15px;
+            ">
+            <thead>
+               <tr>
+                  <th style="border:1px solid black; padding:6px;">No</th>
+                  <th style="border:1px solid black; padding:6px;">Nama</th>
+                  <th style="border:1px solid black; padding:6px;">Tanggal</th>
+                  <th style="border:1px solid black; padding:6px;">Masuk</th>
+                  <th style="border:1px solid black; padding:6px;">Pulang</th>
+                  <th style="border:1px solid black; padding:6px;">Durasi</th>
+               </tr>
+            </thead>
+            <tbody id="pdfTable"></tbody>
+         </table>
+         <h3 id="pdfTotal" style="margin-top:15px;"></h3>
       </div>
-    `;
-  });
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="card empty">
-        Belum ada data absensi
-      </div>
-    `;
-  }
-
-  let jam = Math.floor(totalMenit / 60);
-  let menit = totalMenit % 60;
-
-  totalDisplay.innerHTML = `
-    ⏱ Total Jam Kerja<br>
-    ${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit
-  `;
-}
-
-function simpan() {
-  let nama = document.getElementById("nama").value.trim();
-  let tanggal = document.getElementById("tanggal").value;
-  let masuk = document.getElementById("jamMasuk").value;
-  let pulang = document.getElementById("jamPulang").value;
-
-  if (!nama || !tanggal) {
-    alert("Isi nama & tanggal dulu");
-    return;
-  }
-
-  data.push({ nama, tanggal, masuk, pulang });
-  localStorage.setItem("absensi", JSON.stringify(data));
-
-  document.getElementById("nama").value = "";
-  document.getElementById("jamMasuk").value = "";
-  document.getElementById("jamPulang").value = "";
-
-  alert("Data berhasil disimpan");
-  render();
-}
-
-function hapus(index) {
-  if (confirm("Yakin mau hapus data ini?")) {
-    data.splice(index, 1);
-    localStorage.setItem("absensi", JSON.stringify(data));
-    render();
-  }
-}
-
-function editData(index) {
-  let item = data[index];
-
-  document.getElementById("nama").value = item.nama;
-  document.getElementById("tanggal").value = item.tanggal;
-  document.getElementById("jamMasuk").value = item.masuk;
-  document.getElementById("jamPulang").value = item.pulang;
-
-  data.splice(index, 1);
-  localStorage.setItem("absensi", JSON.stringify(data));
-
-  render();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function resetData() {
-  if (confirm("Yakin mau hapus semua data?")) {
-    localStorage.removeItem("absensi");
-    data = [];
-    render();
-  }
-}
-
-function exportPDF() {
-  if (data.length === 0) {
-    alert("Belum ada data absensi");
-    return;
-  }
-
-  let pdfTable = document.getElementById("pdfTable");
-  let pdfTotal = document.getElementById("pdfTotal");
-  let pdfNama = document.getElementById("pdfNama");
-  let pdfPeriode = document.getElementById("pdfPeriode");
-
-  pdfTable.innerHTML = "";
-  let totalMenit = 0;
-
-  let sorted = [...data].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
-
-  let firstDate = new Date(sorted[0].tanggal);
-  let lastDate = new Date(sorted[sorted.length - 1].tanggal);
-
-  let bulanAwal = firstDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-  let bulanAkhir = lastDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-
-  pdfNama.innerText = "Nama: " + sorted[0].nama;
-
-  if (bulanAwal === bulanAkhir) {
-    pdfPeriode.innerText = "Periode: " + bulanAwal;
-  } else {
-    pdfPeriode.innerText = "Periode: " + bulanAwal + " - " + bulanAkhir;
-  }
-
-  sorted.forEach((item, index) => {
-    let durasi = hitungDurasi(item.masuk, item.pulang);
-    let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
-
-    totalMenit += hitungMenit(item.masuk, item.pulang);
-
-    pdfTable.innerHTML += `
-<tr>
-  <td style="border:1px solid black; padding:6px;">${index + 1}</td>
-  <td style="border:1px solid black; padding:6px;">${item.nama}</td>
-  <td style="border:1px solid black; padding:6px;">${tgl}</td>
-  <td style="border:1px solid black; padding:6px;">${item.masuk || "-"}</td>
-  <td style="border:1px solid black; padding:6px;">${item.pulang || "-"}</td>
-  <td style="border:1px solid black; padding:6px;">${durasi}</td>
-</tr>
-`;
-  });
-
-  let jam = Math.floor(totalMenit / 60);
-  let menit = totalMenit % 60;
-
-  pdfTotal.innerText = `Total Jam Kerja: ${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit`;
-
-  let element = document.getElementById("pdfArea");
-  element.style.display = "block";
-
-  html2pdf().set({
-    margin: 0.4,
-    filename: "absensi-kerja.pdf",
-    html2canvas: {
-      scale: 2,
-      scrollY: 0
-    },
-    jsPDF: {
-      unit: "in",
-      format: "a4",
-      orientation: "landscape"
-    }
-  }).from(element).save().then(() => {
-    element.style.display = "none";
-  });
-}
-
-render();
-</script>
-
-</body>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+      <script>
+         let data = JSON.parse(localStorage.getItem("absensi")) || [];
+         
+         document.getElementById("tanggal").valueAsDate = new Date();
+         
+         function hitungDurasi(masuk, pulang) {
+           if (!masuk || !pulang) return "-";
+         
+           let [jm, mm] = masuk.split(":").map(Number);
+           let [jp, mp] = pulang.split(":").map(Number);
+         
+           let start = jm * 60 + mm;
+           let end = jp * 60 + mp;
+         
+           if (end < start) end += 1440;
+         
+           let total = end - start;
+           let jam = Math.floor(total / 60);
+           let menit = total % 60;
+         
+           return `${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit`;
+         }
+         
+         function hitungMenit(masuk, pulang) {
+           if (!masuk || !pulang) return 0;
+         
+           let [jm, mm] = masuk.split(":").map(Number);
+           let [jp, mp] = pulang.split(":").map(Number);
+         
+           let start = jm * 60 + mm;
+           let end = jp * 60 + mp;
+         
+           if (end < start) end += 1440;
+         
+           return end - start;
+         }
+         
+         function toggleDetail(id) {
+           let detail = document.getElementById(id);
+         
+           if (detail.style.display === "block") {
+             detail.style.display = "none";
+           } else {
+             detail.style.display = "block";
+           }
+         }
+         
+         function render() {
+           let container = document.getElementById("tabelAbsensi");
+           let totalDisplay = document.getElementById("totalJam");
+         
+           container.innerHTML = "";
+           let totalMenit = 0;
+         
+           let filtered = data.map((item, index) => ({
+           ...item,
+           asli: index
+         }));
+         
+           filtered.forEach((item, index) => {
+             let durasi = hitungDurasi(item.masuk, item.pulang);
+             let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
+             let detailId = `detail-${index}`;
+         
+             totalMenit += hitungMenit(item.masuk, item.pulang);
+         
+             container.innerHTML += `
+               <div class="card">
+                 <div class="summary" onclick="toggleDetail('${detailId}')">
+                   <div class="summary-left">
+                     <div class="summary-name">#${item.nomor || index + 1} ${item.nama}</div>
+                     <div class="summary-date">${tgl}</div>
+                   </div>
+         
+                   <div class="summary-duration">
+                     ${durasi}<br>
+                     <span style="font-size:12px; color:#aaa;">Tap detail</span>
+                   </div>
+                 </div>
+         
+                 <div class="detail" id="${detailId}">
+                   <div class="row"><span class="label">Nama</span><span class="value">${item.nama}</span></div>
+                   <div class="row"><span class="label">Tanggal</span><span class="value">${tgl}</span></div>
+                   <div class="row"><span class="label">Masuk</span><span class="value">${item.masuk || "-"}</span></div>
+                   <div class="row"><span class="label">Pulang</span><span class="value">${item.pulang || "-"}</span></div>
+                   <div class="row"><span class="label">Durasi</span><span class="value">${durasi}</span></div>
+         
+                   <button class="edit" onclick="editData(${item.asli})">Edit</button>
+                   <button class="hapus" onclick="hapus(${item.asli})">Hapus</button>
+                 </div>
+               </div>
+             `;
+           });
+         
+           if (filtered.length === 0) {
+             container.innerHTML = `
+               <div class="card empty">
+                 Belum ada data absensi
+               </div>
+             `;
+           }
+         
+           let jam = Math.floor(totalMenit / 60);
+           let menit = totalMenit % 60;
+         
+           totalDisplay.innerHTML = `
+             ⏱ Total Jam Kerja<br>
+             ${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit
+           `;
+         }
+         
+         function simpan() {
+           let nama = document.getElementById("nama").value.trim();
+           let tanggal = document.getElementById("tanggal").value;
+           let masuk = document.getElementById("jamMasuk").value;
+           let pulang = document.getElementById("jamPulang").value;
+         
+           if (!nama || !tanggal) {
+             alert("Isi nama & tanggal dulu");
+             return;
+           }
+         
+           let nomorBaru = data.length > 0
+           ? Math.max(...data.map(item => item.nomor || 0)) + 1
+           : 1;
+         
+         data.push({
+           nomor: nomorBaru,
+           nama,
+           tanggal,
+           masuk,
+           pulang
+         });
+           localStorage.setItem("absensi", JSON.stringify(data));
+         
+           document.getElementById("nama").value = "";
+           document.getElementById("jamMasuk").value = "";
+           document.getElementById("jamPulang").value = "";
+         
+           alert("Data berhasil disimpan");
+           render();
+         }
+         
+         function hapus(index) {
+           if (confirm("Yakin mau hapus data ini?")) {
+             data.splice(index, 1);
+             localStorage.setItem("absensi", JSON.stringify(data));
+             render();
+           }
+         }
+         
+         function editData(index) {
+           let item = data[index];
+         
+           document.getElementById("nama").value = item.nama;
+           document.getElementById("tanggal").value = item.tanggal;
+           document.getElementById("jamMasuk").value = item.masuk;
+           document.getElementById("jamPulang").value = item.pulang;
+         
+           data.splice(index, 1);
+           localStorage.setItem("absensi", JSON.stringify(data));
+         
+           render();
+           window.scrollTo({ top: 0, behavior: "smooth" });
+         }
+         
+         function resetData() {
+           if (confirm("Yakin mau hapus semua data?")) {
+             localStorage.removeItem("absensi");
+             data = [];
+             render();
+           }
+         }
+         
+         function exportPDF() {
+           if (data.length === 0) {
+             alert("Belum ada data absensi");
+             return;
+           }
+         
+           let pdfTable = document.getElementById("pdfTable");
+           let pdfTotal = document.getElementById("pdfTotal");
+           let pdfNama = document.getElementById("pdfNama");
+           let pdfPeriode = document.getElementById("pdfPeriode");
+         
+           pdfTable.innerHTML = "";
+           let totalMenit = 0;
+         
+           let sorted = [...data].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+         
+           let firstDate = new Date(sorted[0].tanggal);
+           let lastDate = new Date(sorted[sorted.length - 1].tanggal);
+         
+           let bulanAwal = firstDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+           let bulanAkhir = lastDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+         
+           pdfNama.innerText = "Nama: " + sorted[0].nama;
+         
+           if (bulanAwal === bulanAkhir) {
+             pdfPeriode.innerText = "Periode: " + bulanAwal;
+           } else {
+             pdfPeriode.innerText = "Periode: " + bulanAwal + " - " + bulanAkhir;
+           }
+         
+           sorted.forEach((item, index) => {
+             let durasi = hitungDurasi(item.masuk, item.pulang);
+             let tgl = new Date(item.tanggal).toLocaleDateString("id-ID");
+         
+             totalMenit += hitungMenit(item.masuk, item.pulang);
+         
+             pdfTable.innerHTML += `
+         <tr>
+           <td style="border:1px solid black; padding:6px;">${item.nomor || index + 1}</td>
+           <td style="border:1px solid black; padding:6px;">${item.nama}</td>
+           <td style="border:1px solid black; padding:6px;">${tgl}</td>
+           <td style="border:1px solid black; padding:6px;">${item.masuk || "-"}</td>
+           <td style="border:1px solid black; padding:6px;">${item.pulang || "-"}</td>
+           <td style="border:1px solid black; padding:6px;">${durasi}</td>
+         </tr>
+         `;
+           });
+         
+           let jam = Math.floor(totalMenit / 60);
+           let menit = totalMenit % 60;
+         
+           pdfTotal.innerText = `Total Jam Kerja: ${String(jam).padStart(2, "0")} jam ${String(menit).padStart(2, "0")} menit`;
+         
+           let element = document.getElementById("pdfArea");
+           element.style.display = "block";
+         
+           html2pdf().set({
+             margin: 0.4,
+             filename: "absensi-kerja.pdf",
+             html2canvas: {
+               scale: 2,
+               scrollY: 0
+             },
+             jsPDF: {
+               unit: "in",
+               format: "a4",
+               orientation: "landscape"
+             }
+           }).from(element).save().then(() => {
+             element.style.display = "none";
+           });
+         }
+         
+         render();
+      </script>
+   </body>
 </html>

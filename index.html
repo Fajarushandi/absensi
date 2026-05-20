@@ -156,7 +156,7 @@
 
     .empty{text-align:center;color:var(--muted);padding:26px 14px;border:1px dashed var(--line);border-radius:18px;background:rgba(255,255,255,.035)}
 
-    #pdfArea{display:none;width:1100px;background:white;color:black;padding:30px;font-family:Arial, Helvetica, sans-serif}
+    #pdfArea{   display:none;   width:190mm;   min-height:auto;   background:white;   color:black;   padding:10mm;   font-family:Arial, Helvetica, sans-serif; }
 
     @media(min-width:700px){
       body{padding:24px}
@@ -396,7 +396,7 @@
       el("pdfPeriode").innerText="Periode: "+periodeText();
       el("pdfTotalJam").innerText="Total Jam: "+formatDurasi(totalMenit);
       const area=el("pdfArea");area.style.display="block";
-      html2pdf().set({margin:.35,filename:`absensi-${new Date().toISOString().slice(0,10)}.pdf`,html2canvas:{scale:2,scrollY:0},jsPDF:{unit:"in",format:"a4",orientation:"landscape"}}).from(area).save().then(()=>{area.style.display="none"});
+      html2pdf().set({margin:.35,filename:`absensi-${new Date().toISOString().slice(0,10)}.pdf`,html2canvas:{scale:2,scrollY:0},jsPDF:{ unit:"mm", format:"a4", orientation:"portrait" }}).from(area).save().then(()=>{area.style.display="none"});
     }
 
     data=data.map(item=>({id:item.id||uid(),...item}));

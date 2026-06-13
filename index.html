@@ -261,7 +261,8 @@
     <div style="margin-top:18px;font-size:16px;font-weight:bold;text-align:right;"><div id="pdfTotalJam"></div></div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script>
     const GAJI_PER_JAM = 11000;
     let data = JSON.parse(localStorage.getItem("absensiPro")) || JSON.parse(localStorage.getItem("absensi")) || [];
@@ -402,46 +403,82 @@
     function clearFilter(){el("searchNama").value="";el("filterMode").value="all";el("dariTanggal").value="";el("sampaiTanggal").value="";render()}
 
     function exportPDF(){
-      const list=getFilteredData();
-      if(list.length===0){alert("Belum ada data untuk diexport.");return}
-      const pdfTable=el("pdfTable");pdfTable.innerHTML="";
-      let totalMenit=0;
-      const namaAsli =
-  list.find(item =>
-    item.nama &&
-    item.nama.toUpperCase() !== "LIBUR"
-  )?.nama || "";
-      list.forEach((item,index)=>{
-        const menit=hitungMenit(item.masuk,item.pulang);totalMenit+=menit;
-        pdfTable.innerHTML+=`<tr><td style="border:1px solid #000;padding:7px;">${index+1}</td><td style="border:1px solid #000;padding:7px;">${escapeHTML(item.nama)}</td><td style="border:1px solid #000;padding:7px;">${tanggalID(item.tanggal)}</td><td style="border:1px solid #000;padding:7px;">${item.masuk||"-"}</td><td style="border:1px solid #000;padding:7px;">${item.pulang||"-"}</td><td style="border:1px solid #000;padding:7px;">${formatDurasi(menit)}</td></tr>`;
-      });
-      el("pdfNama").innerText =
-  "Nama: " + namaAsli;
-      el("pdfPeriode").innerText="Periode: "+periodeText();
-      el("pdfTotalJam").innerText="Total Jam: "+formatDurasi(totalMenit);
-      const area=el("pdfArea");area.style.display="block";
-      html2pdf().set({
-  margin:2,
-  filename:`absensi-${new Date().toISOString().slice(0,10)}.pdf`,
-  image:{
-    type:'jpeg',
-    quality:1
-  },
-  html2canvas:{
-  scale:1,
-  scrollY:0,
-  useCORS:true
-},
-  pagebreak:{
-  mode:['css','legacy']
-},
-  jsPDF:{
-    unit:'mm',
-    format:'a4',
-    orientation:'portrait'
+
+  const list = getFilteredData();
+
+  if(list.length === 0){
+    alert("Belum ada data untuk diexport.");
+    return;
   }
-}).from(area).save().then(()=>{area.style.display="none"});
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p","mm","a4");
+
+  let totalMenit = 0;
+
+  const namaAsli =
+    list.find(item =>
+      item.nama &&
+      item.nama.toUpperCase() !== "LIBUR"
+    )?.nama || "";
+
+  doc.setFontSize(16);
+  doc.text("LAPORAN ABSENSI KERJA",105,15,{align:"center"});
+
+  doc.setFontSize(10);
+  doc.text(`Nama: ${namaAsli}`,105,22,{align:"center"});
+  doc.text(`Periode: ${periodeText()}`,105,28,{align:"center"});
+
+  const rows = list.map((item,index)=>{
+
+    const menit = hitungMenit(item.masuk,item.pulang);
+    totalMenit += menit;
+
+    return [
+      index + 1,
+      item.nama,
+      tanggalID(item.tanggal),
+      item.masuk,
+      item.pulang,
+      formatDurasi(menit)
+    ];
+  });
+
+  doc.autoTable({
+    startY:35,
+    head:[[
+      "No",
+      "Nama",
+      "Tanggal",
+      "Masuk",
+      "Pulang",
+      "Durasi"
+    ]],
+    body:rows,
+    theme:"grid",
+    styles:{
+      fontSize:8,
+      halign:"center"
+    },
+    headStyles:{
+      fillColor:[230,230,230],
+      textColor:[0,0,0]
     }
+  });
+
+  doc.setFontSize(11);
+
+  doc.text(
+    `Total Jam: ${formatDurasi(totalMenit)}`,
+    195,
+    doc.lastAutoTable.finalY + 10,
+    {align:"right"}
+  );
+
+  doc.save(
+    `absensi-${new Date().toISOString().slice(0,10)}.pdf`
+  );
+}
 
     data=data.map(item=>({
   ...item,

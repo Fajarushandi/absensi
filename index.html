@@ -170,8 +170,7 @@
 }
 
 #pdfArea tr{
-  page-break-inside:avoid;
-  page-break-after:auto;
+  page-break-inside:auto;
 }
 
 #pdfArea thead{
@@ -434,8 +433,8 @@
     useCORS:true
   },
   pagebreak:{
-    mode:['avoid-all','css','legacy']
-  },
+  mode:['css','legacy']
+},
   jsPDF:{
     unit:'mm',
     format:'a4',

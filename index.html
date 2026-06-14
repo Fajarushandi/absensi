@@ -711,7 +711,7 @@
           labelStatusPDF(item.status),
           item.masuk||"-",
           item.pulang||"-",
-          (item.status&&item.status!=="hadir")?"—":formatDurasi(menit)
+          (item.status&&item.status!=="hadir")?"-":formatDurasi(menit)
         ];
       });
 

@@ -424,9 +424,17 @@
       return map[status]||"✅ Hadir";
     }
     // Label untuk PDF (tanpa emoji, jsPDF tidak support)
+    function normalizeStatus(status){
+      // Handle status lama yang mungkin tersimpan dengan emoji atau format berbeda
+      const s=(status||"").toLowerCase().replace(/[^a-z]/g,"");
+      if(s.includes("libur"))return"libur";
+      if(s.includes("izin"))return"izin";
+      if(s.includes("sakit"))return"sakit";
+      return"hadir";
+    }
     function labelStatusPDF(status){
       const map={hadir:"Hadir",izin:"Izin",sakit:"Sakit",libur:"Libur"};
-      return map[status]||"Hadir";
+      return map[normalizeStatus(status)]||"Hadir";
     }
     function classStatus(status){
       return `status-${status||"hadir"}`;
@@ -528,7 +536,7 @@
               <div class="row"><span>Status</span><span>${labelStatus(item.status)}</span></div>
               <div class="row"><span>Jam Masuk</span><span>${item.masuk||"-"}</span></div>
               <div class="row"><span>Jam Pulang</span><span>${item.pulang||"-"}</span></div>
-              <div class="row"><span>Durasi</span><span>${(item.status&&item.status!=="hadir")?"—":formatDurasi(menit)}</span></div>
+              <div class="row"><span>Durasi</span><span>${(item.status&&item.status!=="hadir")?"-":formatDurasi(menit)}</span></div>
               <div class="row"><span>Estimasi Gaji</span><span>${gajiTeks}</span></div>
               ${catatanRow}
               <div class="card-actions">

@@ -2,14 +2,16 @@
   "name": "Absensi Kerja",
   "short_name": "Absensi",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0b1120",
   "theme_color": "#0b1120",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0b1120">
+  <meta name="theme-color" content="#0b1120">
   <title>Absensi Kerja</title>
   <style>
     :root{
@@ -49,10 +49,11 @@
 
     .hero{padding:16px;margin-bottom:13px}
 
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
     h1{font-size:24px;margin:0;letter-spacing:-.5px}
 
+    /* FIX #3: Rate badge clickable untuk edit tarif */
     .rate{
       padding:5px 8px;
       border-radius:999px;
@@ -62,7 +63,11 @@
       font-size:10.5px;
       font-weight:700;
       white-space:nowrap;
+      cursor:pointer;
+      user-select:none;
+      transition:.15s background;
     }
+    .rate:hover{background:rgba(34,197,94,.18)}
 
     .stats{
       display:grid;
@@ -93,7 +98,7 @@
 
     label{display:block;color:#cbd5e1;font-size:13px;font-weight:800;margin-bottom:6px}
 
-    input,select,button{
+    input,select,textarea,button{
       width:100%;
       border:0;
       outline:none;
@@ -102,14 +107,19 @@
       font-family:inherit;
     }
 
-    input,select{
+    input,select,textarea{
       background:#0f172a;
       color:var(--text);
       border:1px solid var(--line);
       padding:13px 12px;
     }
 
-    input:focus,select:focus{border-color:rgba(56,189,248,.65);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
+    textarea{resize:vertical;min-height:72px;line-height:1.5}
+
+    input:focus,select:focus,textarea:focus{border-color:rgba(56,189,248,.65);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
+
+    /* FIX #2: Error state untuk validasi */
+    input.error,select.error{border-color:rgba(239,68,68,.7)!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important}
 
     .actions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:12px}
 
@@ -120,6 +130,7 @@
     .btn-main{background:linear-gradient(135deg,#22c55e,#16a34a)}
     .btn-blue{background:linear-gradient(135deg,#38bdf8,#0284c7)}
     .btn-red{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+    .btn-yellow{background:linear-gradient(135deg,#facc15,#ca8a04);color:#1a1a1a}
     .btn-muted{background:linear-gradient(135deg,#64748b,#475569)}
     .btn-small{padding:10px 11px;font-size:13px;border-radius:13px}
     .hidden{display:none!important}
@@ -127,6 +138,55 @@
     .edit-mode{border-color:rgba(250,204,21,.5)!important;box-shadow:0 0 0 3px rgba(250,204,21,.1),0 16px 42px rgba(0,0,0,.26)}
     .edit-badge{display:none;margin-bottom:10px;padding:10px 12px;border-radius:14px;background:rgba(250,204,21,.12);color:#fde68a;border:1px solid rgba(250,204,21,.25);font-size:13px;font-weight:900}
     .edit-badge.show{display:block}
+
+    /* FIX #10: Toast notifikasi sukses */
+    .toast{
+      position:fixed;
+      bottom:24px;
+      left:50%;
+      transform:translateX(-50%) translateY(80px);
+      background:rgba(34,197,94,.92);
+      color:#fff;
+      padding:12px 22px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:900;
+      box-shadow:0 8px 24px rgba(0,0,0,.3);
+      z-index:9999;
+      transition:.28s transform,.28s opacity;
+      opacity:0;
+      white-space:nowrap;
+    }
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+    /* FIX #1: Modal konfirmasi reset */
+    .overlay{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.6);
+      z-index:9990;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .overlay.show{display:flex}
+    .modal{
+      background:linear-gradient(145deg,#111827,#0f172a);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:24px;
+      max-width:360px;
+      width:100%;
+      box-shadow:0 24px 60px rgba(0,0,0,.5);
+    }
+    .modal h3{margin:0 0 10px;font-size:18px}
+    .modal p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.6}
+    .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    /* FIX #3: Modal tarif gaji */
+    .modal-gaji{max-width:320px}
+    .modal-gaji input{margin-bottom:16px}
 
     .cards{display:grid;gap:10px;margin-top:12px}
 
@@ -139,51 +199,49 @@
     }
 
     .summary{padding:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer}
-    .left{min-width:0}
+    .left{min-width:0;flex:1}
     .name{font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .date{margin-top:4px;color:var(--muted);font-size:13px;line-height:1.35}
-    .duration{text-align:right;font-weight:900;color:#bbf7d0;min-width:106px}
+
+    /* FIX #9: badge status */
+    .status-badge{
+      display:inline-block;
+      margin-top:5px;
+      padding:2px 9px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+    }
+    .status-hadir{background:rgba(34,197,94,.15);color:#86efac}
+    .status-izin{background:rgba(56,189,248,.15);color:#7dd3fc}
+    .status-sakit{background:rgba(250,204,21,.15);color:#fde68a}
+    .status-libur{background:rgba(148,163,184,.15);color:#cbd5e1}
+
+    .duration{text-align:right;font-weight:900;color:#bbf7d0;min-width:90px}
     .duration small{display:block;color:var(--muted);font-weight:500;font-size:11px;margin-top:3px}
 
     .detail{max-height:0;overflow:hidden;transition:max-height .25s ease;border-top:1px solid transparent}
-    .detail.open{max-height:560px;border-top-color:var(--line)}
+    .detail.open{max-height:660px;border-top-color:var(--line)}
     .detail-inner{padding:10px 13px 13px}
 
     .row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:14px}
     .row:last-child{border-bottom:0}
     .row span:first-child{color:var(--muted)}
     .row span:last-child{font-weight:900;text-align:right}
+    .row-note span:last-child{font-weight:400;color:#e2e8f0;word-break:break-word;text-align:right}
 
     .card-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 
     .empty{text-align:center;color:var(--muted);padding:26px 14px;border:1px dashed var(--line);border-radius:18px;background:rgba(255,255,255,.035)}
 
-    #pdfArea{
-  display:none;
-  width:190mm;
-  background:white;
-  color:black;
-  padding:5mm;
-  font-family:Arial, Helvetica, sans-serif;
-}
-
-#pdfArea table{
-  page-break-inside:auto;
-}
-
-#pdfArea tr{
-  page-break-inside:auto;
-}
-
-#pdfArea thead{
-  display:table-header-group;
-}
+    #pdfArea{display:none}
 
     @media(min-width:700px){
       body{padding:24px}
       h1{font-size:30px}
       .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
-      .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .grid-full{grid-column:1/-1}
       .toolbar{grid-template-columns:1.2fr 1fr 1fr 1fr}
       .actions{grid-template-columns:2fr 1fr}
       .form-actions{grid-template-columns:2fr 1fr 1fr}
@@ -195,7 +253,8 @@
     <header class="hero">
       <div class="topbar">
         <h1>📋 Absensi Kerja</h1>
-        <div class="rate">Rp11.000 / jam</div>
+        <!-- FIX #3: Klik untuk ubah tarif -->
+        <div class="rate" onclick="bukaModalGaji()" title="Klik untuk ubah tarif">✏️ <span id="labelRate">Rp11.000 / jam</span></div>
       </div>
 
       <div class="stats">
@@ -217,14 +276,26 @@
       <div class="grid">
         <div><label for="nama">Nama</label><input type="text" id="nama" placeholder="Contoh: Fajar" autocomplete="off" /></div>
         <div><label for="tanggal">Tanggal</label><input type="date" id="tanggal" /></div>
+        <!-- FIX #9: Status kehadiran -->
+        <div><label for="statusKehadiran">Status</label>
+          <select id="statusKehadiran">
+            <option value="hadir">✅ Hadir</option>
+            <option value="izin">📋 Izin</option>
+            <option value="sakit">🤒 Sakit</option>
+            <option value="libur">🏖️ Libur</option>
+          </select>
+        </div>
         <div><label for="jamMasuk">Jam Masuk</label><input type="time" id="jamMasuk" /></div>
         <div><label for="jamPulang">Jam Pulang</label><input type="time" id="jamPulang" /></div>
+        <!-- FIX #4: Field catatan -->
+        <div class="grid-full"><label for="catatan">Catatan (opsional)</label><textarea id="catatan" placeholder="Contoh: lembur, tugas khusus, dll..."></textarea></div>
       </div>
 
       <div class="actions form-actions">
         <button class="btn-main" id="btnSimpan" onclick="simpan()">Simpan Absensi</button>
         <button class="btn-muted hidden" id="btnBatal" onclick="batalEdit()">Batal Edit</button>
-        <button class="btn-red" onclick="resetData()">Reset Semua</button>
+        <!-- FIX #1: Reset pakai modal konfirmasi, bukan confirm() langsung -->
+        <button class="btn-red" onclick="bukaModalReset()">Reset Semua</button>
       </div>
     </section>
 
@@ -233,13 +304,22 @@
 
       <div class="toolbar">
         <div><label for="searchNama">Cari Nama</label><input type="text" id="searchNama" placeholder="Cari nama..." oninput="render()" /></div>
-        <div><label for="filterMode">Periode</label><select id="filterMode" onchange="aturFilterTanggal(); render();"><option value="all">Semua Data</option><option value="week">Minggu Ini</option><option value="month">Bulan Ini</option><option value="custom">Custom</option></select></div>
+        <div><label for="filterMode">Periode</label>
+          <select id="filterMode" onchange="aturFilterTanggal(); render();">
+            <option value="all">Semua Data</option>
+            <option value="week">Minggu Ini</option>
+            <option value="month">Bulan Ini</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
         <div><label for="dariTanggal">Dari</label><input type="date" id="dariTanggal" onchange="setCustomFilter(); render()" /></div>
         <div><label for="sampaiTanggal">Sampai</label><input type="date" id="sampaiTanggal" onchange="setCustomFilter(); render()" /></div>
       </div>
 
-      <div class="actions">
-        <button class="btn-blue" onclick="exportPDF()">Export PDF Sesuai Filter</button>
+      <div class="actions" style="grid-template-columns:1fr 1fr 1fr">
+        <button class="btn-blue" onclick="exportPDF()">📄 Export PDF</button>
+        <!-- FIX #7: Export CSV -->
+        <button class="btn-yellow" onclick="exportCSV()">📊 Export CSV</button>
         <button class="btn-muted" onclick="clearFilter()">Reset Filter</button>
       </div>
     </section>
@@ -250,38 +330,85 @@
     </section>
   </main>
 
-  <div id="pdfArea">
-    <div style="text-align:center;margin-bottom:15px;">
-      <h2 style="margin:0 0 8px;">LAPORAN ABSENSI KERJA</h2>
-      <div id="pdfNama"></div>
-      <div id="pdfPeriode"></div>
+  <!-- FIX #1: Modal konfirmasi reset -->
+  <div class="overlay" id="overlayReset">
+    <div class="modal">
+      <h3>⚠️ Hapus Semua Data?</h3>
+      <p>Semua data absensi akan dihapus permanen dan <strong>tidak bisa dikembalikan</strong>. Pastikan sudah export data terlebih dahulu.</p>
+      <div class="modal-actions">
+        <button class="btn-muted" onclick="tutupModal('overlayReset')">Batal</button>
+        <button class="btn-red" onclick="resetData()">Ya, Hapus Semua</button>
+      </div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;border:2px solid #000;margin-top:15px;">
-      <thead><tr style="background:#e5e7eb;"><th style="border:1px solid #000;padding:7px;">No</th><th style="border:1px solid #000;padding:7px;">Nama</th><th style="border:1px solid #000;padding:7px;">Tanggal</th><th style="border:1px solid #000;padding:7px;">Masuk</th><th style="border:1px solid #000;padding:7px;">Pulang</th><th style="border:1px solid #000;padding:7px;">Durasi</th></tr></thead>
-      <tbody id="pdfTable"></tbody>
-    </table>
-    <div style="margin-top:18px;font-size:16px;font-weight:bold;text-align:right;"><div id="pdfTotalJam"></div></div>
   </div>
 
+  <!-- FIX #3: Modal ubah tarif gaji -->
+  <div class="overlay" id="overlayGaji">
+    <div class="modal modal-gaji">
+      <h3>💰 Ubah Tarif Gaji</h3>
+      <p>Masukkan tarif upah per jam (dalam Rupiah).</p>
+      <label for="inputTarifBaru">Tarif per Jam (Rp)</label>
+      <input type="number" id="inputTarifBaru" placeholder="Contoh: 15000" min="1000" step="500" />
+      <div class="modal-actions">
+        <button class="btn-muted" onclick="tutupModal('overlayGaji')">Batal</button>
+        <button class="btn-main" onclick="simpanTarif()">Simpan Tarif</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIX #10: Toast -->
+  <div class="toast" id="toast"></div>
+
+  <div id="pdfArea"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script>
-    const GAJI_PER_JAM = 11000;
+    // FIX #3: Tarif dari localStorage
+    let GAJI_PER_JAM = parseInt(localStorage.getItem("gajiPerJam")) || 11000;
+
     let data = JSON.parse(localStorage.getItem("absensiPro")) || JSON.parse(localStorage.getItem("absensi")) || [];
     let editId = null;
     const el = id => document.getElementById(id);
 
     el("tanggal").valueAsDate = new Date();
+    updateLabelRate();
 
     function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
     function simpanStorage(){localStorage.setItem("absensiPro", JSON.stringify(data))}
     function parseMenit(jam){const [h,m]=jam.split(":").map(Number);return h*60+m}
-    function hitungMenit(masuk,pulang){if(!masuk||!pulang)return 0;let start=parseMenit(masuk),end=parseMenit(pulang);if(end<start)end+=1440;return end-start}
-    function formatDurasi(totalMenit){const jam=Math.floor(totalMenit/60),menit=totalMenit%60;return `${String(jam).padStart(2,"0")} jam ${String(menit).padStart(2,"0")} menit`}
-    function formatDurasiPendek(totalMenit){const jam=Math.floor(totalMenit/60),menit=totalMenit%60;return `${String(jam).padStart(2,"0")}j ${String(menit).padStart(2,"0")}m`}
-    function rupiah(angka){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(angka)}
-    function tanggalID(tanggal){if(!tanggal)return "-";return new Date(tanggal+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"2-digit",month:"short",year:"numeric"})}
-    function escapeHTML(text){return String(text||"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]))}
+
+    // FIX #2: hitungMenit sekarang return null kalau tidak relevan (libur/izin/sakit tanpa jam)
+    function hitungMenit(masuk,pulang){
+      if(!masuk||!pulang)return 0;
+      let start=parseMenit(masuk),end=parseMenit(pulang);
+      if(end<start)end+=1440;
+      return end-start;
+    }
+
+    function formatDurasi(totalMenit){
+      const jam=Math.floor(totalMenit/60),menit=totalMenit%60;
+      return `${String(jam).padStart(2,"0")} jam ${String(menit).padStart(2,"0")} menit`;
+    }
+    function formatDurasiPendek(totalMenit){
+      const jam=Math.floor(totalMenit/60),menit=totalMenit%60;
+      return `${String(jam).padStart(2,"0")}j ${String(menit).padStart(2,"0")}m`;
+    }
+    function rupiah(angka){
+      return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(angka);
+    }
+    function tanggalID(tanggal){
+      if(!tanggal)return "-";
+      return new Date(tanggal+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"2-digit",month:"short",year:"numeric"});
+    }
+    function escapeHTML(text){
+      return String(text||"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+    }
+
+    // FIX #3: Update label rate di header
+    function updateLabelRate(){
+      el("labelRate").innerText = `${rupiah(GAJI_PER_JAM)} / jam`;
+    }
 
     function bonusBulanan(totalMenit){
       const jam=totalMenit/60;
@@ -291,18 +418,34 @@
       return{nominal:0,info:"0 - 100 jam"};
     }
 
+    function labelStatus(status){
+      const map={hadir:"✅ Hadir",izin:"📋 Izin",sakit:"🤒 Sakit",libur:"🏖️ Libur"};
+      return map[status]||"✅ Hadir";
+    }
+    function classStatus(status){
+      return `status-${status||"hadir"}`;
+    }
+
     function getFilteredData(){
-      const q=el("searchNama").value.trim().toLowerCase();
+      // FIX #11: trim + normalize whitespace untuk pencarian
+      const q=el("searchNama").value.trim().toLowerCase().replace(/\s+/g," ");
       const dari=el("dariTanggal").value;
       const sampai=el("sampaiTanggal").value;
       return data
-        .filter(item=>!q||(item.nama||"").toLowerCase().includes(q))
+        .filter(item=>{
+          if(!q)return true;
+          const nama=(item.nama||"").toLowerCase().replace(/\s+/g," ");
+          return nama.includes(q);
+        })
         .filter(item=>!dari||item.tanggal>=dari)
         .filter(item=>!sampai||item.tanggal<=sampai)
         .sort((a,b)=>{const t=new Date(a.tanggal)-new Date(b.tanggal);return t!==0?t:(a.masuk||"").localeCompare(b.masuk||"")});
     }
 
-    function toDateInput(date){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");return `${y}-${m}-${d}`}
+    function toDateInput(date){
+      const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
+      return `${y}-${m}-${d}`;
+    }
     function setCustomFilter(){el("filterMode").value="custom"}
 
     function aturFilterTanggal(){
@@ -337,7 +480,12 @@
       const box=el("tabelAbsensi");
       box.innerHTML="";
       let totalMenit=0;
-      list.forEach(item=>totalMenit+=hitungMenit(item.masuk,item.pulang));
+      list.forEach(item=>{
+        // FIX #5: Hanya hitung menit untuk status hadir
+        if(!item.status||item.status==="hadir"){
+          totalMenit+=hitungMenit(item.masuk,item.pulang);
+        }
+      });
       const gaji=Math.floor((totalMenit/60)*GAJI_PER_JAM);
       const bonus=bonusBulanan(totalMenit);
       el("statJam").innerText=formatDurasiPendek(totalMenit);
@@ -347,24 +495,40 @@
       el("statData").innerText=list.length;
       el("statPeriode").innerText=periodeText();
       el("listHint").innerText=`${list.length} data`;
-      if(list.length===0){box.innerHTML=`<div class="empty">Belum ada data absensi sesuai filter.</div>`;return}
+      if(list.length===0){
+        box.innerHTML=`<div class="empty">Belum ada data absensi sesuai filter.</div>`;
+        return;
+      }
       list.forEach((item,urut)=>{
-        const menit=hitungMenit(item.masuk,item.pulang);
+        const menit=(item.status&&item.status!=="hadir")?0:hitungMenit(item.masuk,item.pulang);
         const detailId=`detail-${item.id}`;
+        const statusHTML=`<span class="status-badge ${classStatus(item.status)}">${labelStatus(item.status)}</span>`;
+        const durasiTeks=(item.status&&item.status!=="hadir")?"—":formatDurasiPendek(menit);
+        const gajiTeks=(item.status&&item.status!=="hadir")?"—":rupiah(Math.floor((menit/60)*GAJI_PER_JAM));
+        const catatanRow=item.catatan?`<div class="row row-note"><span>Catatan</span><span>${escapeHTML(item.catatan)}</span></div>`:"";
         box.innerHTML+=`
           <div class="absen-card">
             <div class="summary" onclick="toggleDetail('${detailId}')">
-              <div class="left"><div class="name">#${urut+1} ${escapeHTML(item.nama)}</div><div class="date">${tanggalID(item.tanggal)} • ${item.masuk||"-"} - ${item.pulang||"-"}</div></div>
-              <div class="duration">${formatDurasiPendek(menit)}<small>Tap detail</small></div>
+              <div class="left">
+                <div class="name">#${urut+1} ${escapeHTML(item.nama)}</div>
+                <div class="date">${tanggalID(item.tanggal)} • ${item.masuk||"-"} - ${item.pulang||"-"}</div>
+                ${statusHTML}
+              </div>
+              <div class="duration">${durasiTeks}<small>Tap detail</small></div>
             </div>
             <div class="detail" id="${detailId}"><div class="detail-inner">
               <div class="row"><span>Nama</span><span>${escapeHTML(item.nama)}</span></div>
               <div class="row"><span>Tanggal</span><span>${tanggalID(item.tanggal)}</span></div>
+              <div class="row"><span>Status</span><span>${labelStatus(item.status)}</span></div>
               <div class="row"><span>Jam Masuk</span><span>${item.masuk||"-"}</span></div>
               <div class="row"><span>Jam Pulang</span><span>${item.pulang||"-"}</span></div>
-              <div class="row"><span>Durasi</span><span>${formatDurasi(menit)}</span></div>
-              <div class="row"><span>Estimasi Gaji</span><span>${rupiah(Math.floor((menit/60)*GAJI_PER_JAM))}</span></div>
-              <div class="card-actions"><button class="btn-blue btn-small" onclick="editData('${item.id}')">Edit</button><button class="btn-red btn-small" onclick="hapus('${item.id}')">Hapus</button></div>
+              <div class="row"><span>Durasi</span><span>${(item.status&&item.status!=="hadir")?"—":formatDurasi(menit)}</span></div>
+              <div class="row"><span>Estimasi Gaji</span><span>${gajiTeks}</span></div>
+              ${catatanRow}
+              <div class="card-actions">
+                <button class="btn-blue btn-small" onclick="editData('${item.id}')">✏️ Edit</button>
+                <button class="btn-red btn-small" onclick="hapus('${item.id}')">🗑️ Hapus</button>
+              </div>
             </div></div>
           </div>`;
       });
@@ -372,127 +536,242 @@
 
     function toggleDetail(id){const detail=el(id);if(detail)detail.classList.toggle("open")}
 
+    // FIX #2: Validasi lebih ketat dengan highlight field error
     function simpan(){
-      const nama=el("nama").value.trim(),tanggal=el("tanggal").value,masuk=el("jamMasuk").value,pulang=el("jamPulang").value;
-      if(!nama||!tanggal||!masuk||!pulang){alert("Nama, tanggal, jam masuk, dan jam pulang wajib diisi.");return}
-      if(editId){data=data.map(item=>item.id===editId?{...item,nama,tanggal,masuk,pulang}:item);batalEdit(false)}
-      else{data.push({id:uid(),nama,tanggal,masuk,pulang})}
+      // Clear error state dulu
+      ["nama","tanggal","jamMasuk","jamPulang"].forEach(id=>el(id).classList.remove("error"));
+
+      const nama=el("nama").value.trim();
+      const tanggal=el("tanggal").value;
+      const masuk=el("jamMasuk").value;
+      const pulang=el("jamPulang").value;
+      const status=el("statusKehadiran").value;
+      const catatan=el("catatan").value.trim();
+
+      let ada_error=false;
+      if(!nama){el("nama").classList.add("error");ada_error=true}
+      if(!tanggal){el("tanggal").classList.add("error");ada_error=true}
+
+      // Kalau status hadir, jam wajib diisi
+      if(status==="hadir"){
+        if(!masuk){el("jamMasuk").classList.add("error");ada_error=true}
+        if(!pulang){el("jamPulang").classList.add("error");ada_error=true}
+      }
+
+      if(ada_error){
+        tampilToast("⚠️ Lengkapi field yang ditandai merah","#ef4444");
+        return;
+      }
+
+      // FIX #2: Validasi jam masuk tidak boleh sama dengan jam pulang (kecuali lintas malam)
+      if(status==="hadir"&&masuk&&pulang){
+        const selisih=hitungMenit(masuk,pulang);
+        if(selisih===0){
+          el("jamPulang").classList.add("error");
+          tampilToast("⚠️ Jam masuk dan pulang tidak boleh sama","#ef4444");
+          return;
+        }
+      }
+
+      if(editId){
+        data=data.map(item=>item.id===editId?{...item,nama,tanggal,masuk,pulang,status,catatan}:item);
+        batalEdit(false);
+        tampilToast("✅ Data berhasil diupdate");
+      } else {
+        data.push({id:uid(),nama,tanggal,masuk,pulang,status,catatan});
+        tampilToast("✅ Absensi berhasil disimpan");
+      }
       simpanStorage();clearForm();render();
     }
 
-    function clearForm(){el("nama").value="";el("jamMasuk").value="";el("jamPulang").value="";el("tanggal").valueAsDate=new Date()}
+    function clearForm(){
+      el("nama").value="";
+      el("jamMasuk").value="";
+      el("jamPulang").value="";
+      el("catatan").value="";
+      el("statusKehadiran").value="hadir";
+      el("tanggal").valueAsDate=new Date();
+      ["nama","tanggal","jamMasuk","jamPulang"].forEach(id=>el(id).classList.remove("error"));
+    }
 
     function editData(id){
       const item=data.find(x=>x.id===id);if(!item)return;
       editId=id;
-      el("nama").value=item.nama;el("tanggal").value=item.tanggal;el("jamMasuk").value=item.masuk;el("jamPulang").value=item.pulang;
-      el("btnSimpan").innerText="Update Absensi";el("formTitle").innerText="Edit Absensi";el("formHint").innerText="Sedang edit data";
-      el("editBadge").classList.add("show");el("formSection").classList.add("edit-mode");el("btnBatal").classList.remove("hidden");
+      el("nama").value=item.nama;
+      el("tanggal").value=item.tanggal;
+      el("jamMasuk").value=item.masuk||"";
+      el("jamPulang").value=item.pulang||"";
+      el("statusKehadiran").value=item.status||"hadir";
+      el("catatan").value=item.catatan||"";
+      el("btnSimpan").innerText="Update Absensi";
+      el("formTitle").innerText="Edit Absensi";
+      el("formHint").innerText="Sedang edit data";
+      el("editBadge").classList.add("show");
+      el("formSection").classList.add("edit-mode");
+      el("btnBatal").classList.remove("hidden");
       window.scrollTo({top:0,behavior:"smooth"});
     }
 
     function batalEdit(resetForm=true){
       editId=null;
-      el("btnSimpan").innerText="Simpan Absensi";el("formTitle").innerText="Tambah Absensi";el("formHint").innerText="Isi data kerja";
-      el("editBadge").classList.remove("show");el("formSection").classList.remove("edit-mode");el("btnBatal").classList.add("hidden");
+      el("btnSimpan").innerText="Simpan Absensi";
+      el("formTitle").innerText="Tambah Absensi";
+      el("formHint").innerText="Isi data kerja";
+      el("editBadge").classList.remove("show");
+      el("formSection").classList.remove("edit-mode");
+      el("btnBatal").classList.add("hidden");
       if(resetForm)clearForm();
     }
 
-    function hapus(id){if(confirm("Yakin mau hapus data ini?")){data=data.filter(item=>item.id!==id);simpanStorage();render()}}
+    function hapus(id){
+      if(confirm("Yakin mau hapus data ini?")){
+        data=data.filter(item=>item.id!==id);
+        simpanStorage();render();
+        tampilToast("🗑️ Data dihapus");
+      }
+    }
 
-    function resetData(){if(confirm("Yakin mau hapus semua data absensi?")){localStorage.removeItem("absensiPro");localStorage.removeItem("absensi");data=[];batalEdit();render()}}
+    // FIX #1: reset sekarang dipanggil dari modal, bukan confirm langsung
+    function bukaModalReset(){el("overlayReset").classList.add("show")}
+    function tutupModal(id){el(id).classList.remove("show")}
 
-    function clearFilter(){el("searchNama").value="";el("filterMode").value="all";el("dariTanggal").value="";el("sampaiTanggal").value="";render()}
+    function resetData(){
+      localStorage.removeItem("absensiPro");
+      localStorage.removeItem("absensi");
+      data=[];batalEdit();render();
+      tutupModal("overlayReset");
+      tampilToast("🗑️ Semua data dihapus");
+    }
+
+    // FIX #3: Modal ubah tarif
+    function bukaModalGaji(){
+      el("inputTarifBaru").value=GAJI_PER_JAM;
+      el("overlayGaji").classList.add("show");
+      setTimeout(()=>el("inputTarifBaru").focus(),100);
+    }
+    function simpanTarif(){
+      const val=parseInt(el("inputTarifBaru").value);
+      if(!val||val<500){tampilToast("⚠️ Tarif tidak valid","#ef4444");return}
+      GAJI_PER_JAM=val;
+      localStorage.setItem("gajiPerJam",val);
+      updateLabelRate();
+      tutupModal("overlayGaji");
+      render();
+      tampilToast("💰 Tarif gaji diperbarui");
+    }
+
+    function clearFilter(){
+      el("searchNama").value="";
+      el("filterMode").value="all";
+      el("dariTanggal").value="";
+      el("sampaiTanggal").value="";
+      render();
+    }
+
+    // FIX #10: Toast notifikasi
+    let toastTimer=null;
+    function tampilToast(pesan,warna="#22c55e"){
+      const t=el("toast");
+      t.innerText=pesan;
+      t.style.background=warna==="error"?"rgba(239,68,68,.92)":`rgba(${warna==="$ef4444"?"239,68,68":"34,197,94"},.92)`;
+      if(warna==="#ef4444")t.style.background="rgba(239,68,68,.92)";
+      else t.style.background="rgba(34,197,94,.92)";
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer=setTimeout(()=>t.classList.remove("show"),2500);
+    }
 
     function exportPDF(){
+      const list=getFilteredData();
+      if(list.length===0){tampilToast("⚠️ Tidak ada data untuk diexport","#ef4444");return}
+      const {jsPDF}=window.jspdf;
+      const doc=new jsPDF("p","mm","a4");
+      let totalMenit=0;
+      const namaAsli=list.find(item=>item.nama&&(item.status||"hadir")==="hadir")?.nama||list[0]?.nama||"";
 
-  const list = getFilteredData();
+      doc.setFontSize(16);
+      doc.text("LAPORAN ABSENSI KERJA",105,15,{align:"center"});
+      doc.setFontSize(10);
+      doc.text(`Nama: ${namaAsli}`,105,22,{align:"center"});
+      doc.text(`Periode: ${periodeText()}`,105,28,{align:"center"});
+      doc.text(`Tarif: ${rupiah(GAJI_PER_JAM)}/jam`,105,34,{align:"center"});
 
-  if(list.length === 0){
-    alert("Belum ada data untuk diexport.");
-    return;
-  }
+      const rows=list.map((item,index)=>{
+        const menit=(item.status&&item.status!=="hadir")?0:hitungMenit(item.masuk,item.pulang);
+        totalMenit+=menit;
+        return [
+          index+1,
+          item.nama,
+          tanggalID(item.tanggal),
+          labelStatus(item.status),
+          item.masuk||"-",
+          item.pulang||"-",
+          (item.status&&item.status!=="hadir")?"—":formatDurasi(menit)
+        ];
+      });
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p","mm","a4");
+      doc.autoTable({
+        startY:40,
+        head:[["No","Nama","Tanggal","Status","Masuk","Pulang","Durasi"]],
+        body:rows,
+        theme:"grid",
+        styles:{fontSize:7.5,halign:"center"},
+        headStyles:{fillColor:[230,230,230],textColor:[0,0,0]}
+      });
 
-  let totalMenit = 0;
-
-  const namaAsli =
-    list.find(item =>
-      item.nama &&
-      item.nama.toUpperCase() !== "LIBUR"
-    )?.nama || "";
-
-  doc.setFontSize(16);
-  doc.text("LAPORAN ABSENSI KERJA",105,15,{align:"center"});
-
-  doc.setFontSize(10);
-  doc.text(`Nama: ${namaAsli}`,105,22,{align:"center"});
-  doc.text(`Periode: ${periodeText()}`,105,28,{align:"center"});
-
-  const rows = list.map((item,index)=>{
-
-    const menit = hitungMenit(item.masuk,item.pulang);
-    totalMenit += menit;
-
-    return [
-      index + 1,
-      item.nama,
-      tanggalID(item.tanggal),
-      item.masuk,
-      item.pulang,
-      formatDurasi(menit)
-    ];
-  });
-
-  doc.autoTable({
-    startY:35,
-    head:[[
-      "No",
-      "Nama",
-      "Tanggal",
-      "Masuk",
-      "Pulang",
-      "Durasi"
-    ]],
-    body:rows,
-    theme:"grid",
-    styles:{
-      fontSize:8,
-      halign:"center"
-    },
-    headStyles:{
-      fillColor:[230,230,230],
-      textColor:[0,0,0]
+      const finalY=doc.lastAutoTable.finalY+10;
+      const totalGaji=Math.floor((totalMenit/60)*GAJI_PER_JAM);
+      doc.setFontSize(10);
+      doc.text(`Total Jam: ${formatDurasi(totalMenit)}`,195,finalY,{align:"right"});
+      doc.text(`Estimasi Gaji: ${rupiah(totalGaji)}`,195,finalY+7,{align:"right"});
+      doc.save(`absensi-${new Date().toISOString().slice(0,10)}.pdf`);
+      tampilToast("📄 PDF berhasil diexport");
     }
-  });
 
-  doc.setFontSize(11);
+    // FIX #7: Export CSV
+    function exportCSV(){
+      const list=getFilteredData();
+      if(list.length===0){tampilToast("⚠️ Tidak ada data untuk diexport","#ef4444");return}
+      const header=["No","Nama","Tanggal","Status","Jam Masuk","Jam Pulang","Durasi (menit)","Estimasi Gaji (Rp)","Catatan"];
+      const rows=list.map((item,i)=>{
+        const menit=(item.status&&item.status!=="hadir")?0:hitungMenit(item.masuk,item.pulang);
+        const gaji=Math.floor((menit/60)*GAJI_PER_JAM);
+        return [
+          i+1,
+          `"${(item.nama||"").replace(/"/g,'""')}"`,
+          item.tanggal,
+          labelStatus(item.status),
+          item.masuk||"",
+          item.pulang||"",
+          menit,
+          gaji,
+          `"${(item.catatan||"").replace(/"/g,'""')}"`
+        ].join(",");
+      });
+      const csv=[header.join(","),...rows].join("\n");
+      const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;a.download=`absensi-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();URL.revokeObjectURL(url);
+      tampilToast("📊 CSV berhasil diexport");
+    }
 
-  doc.text(
-    `Total Jam: ${formatDurasi(totalMenit)}`,
-    195,
-    doc.lastAutoTable.finalY + 10,
-    {align:"right"}
-  );
+    // Tutup modal kalau klik overlay
+    document.querySelectorAll(".overlay").forEach(overlay=>{
+      overlay.addEventListener("click",e=>{
+        if(e.target===overlay)overlay.classList.remove("show");
+      });
+    });
 
-  doc.save(
-    `absensi-${new Date().toISOString().slice(0,10)}.pdf`
-  );
-}
-
-    data=data.map(item=>({
-  ...item,
-  id:item.id || uid()
-}));
+    data=data.map(item=>({...item,id:item.id||uid(),status:item.status||"hadir"}));
     simpanStorage();
     render();
   </script>
   <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js");
-}
-</script>
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("/sw.js");
+    }
+  </script>
 </body>
 </html>

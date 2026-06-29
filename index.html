@@ -796,8 +796,30 @@
     render();
   </script>
   <script>
-    if("serviceWorker" in navigator){
-      navigator.serviceWorker.register("/sw.js");
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").then(reg => {
+        // Cek update setiap kali halaman dibuka
+        reg.update();
+
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener("statechange", () => {
+            // SW baru sudah siap & ada SW lama yang aktif -> reload otomatis
+            if (newWorker.state === "activated" && navigator.serviceWorker.controller) {
+              window.location.reload();
+            }
+          });
+        });
+      });
+
+      // Kalau SW baru langsung take over (skipWaiting), reload halaman
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
     }
   </script>
 </body>

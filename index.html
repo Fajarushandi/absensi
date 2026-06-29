@@ -214,7 +214,6 @@
     }
     .status-hadir{background:rgba(34,197,94,.15);color:#86efac}
     .status-izin{background:rgba(56,189,248,.15);color:#7dd3fc}
-    .status-sakit{background:rgba(250,204,21,.15);color:#fde68a}
     .status-libur{background:rgba(148,163,184,.15);color:#cbd5e1}
 
     .duration{text-align:right;font-weight:900;color:#bbf7d0;min-width:90px}
@@ -260,7 +259,7 @@
       <div class="stats">
         <div class="stat"><small>Total Jam</small><strong id="statJam">00j 00m</strong><span id="statPeriode">Semua data</span></div>
         <div class="stat"><small>Estimasi Gaji</small><strong id="statGaji">Rp0</strong><span>Belum termasuk bonus</span></div>
-        <div class="stat"><small>Bonus Bulanan</small><strong id="statBonus">Rp0</strong><span id="statBonusInfo">0 - 100 jam</span></div>
+        <div class="stat"><small>Bonus Bulanan <button id="btnToggleBonus" onclick="toggleBonus()" style="background:none;border:1px solid rgba(255,255,255,.2);color:var(--muted);font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;cursor:pointer;width:auto;vertical-align:middle;line-height:1.4;transition:.15s">ON</button></small><strong id="statBonus">Rp0</strong><span id="statBonusInfo">0 - 100 jam</span></div>
         <div class="stat"><small>Total Data</small><strong id="statData">0</strong><span>Absensi tersimpan</span></div>
       </div>
     </header>
@@ -274,21 +273,20 @@
       <div class="edit-badge" id="editBadge">✏️ Mode edit aktif</div>
 
       <div class="grid">
-        <div><label for="nama">Nama</label><input type="text" id="nama" placeholder="Contoh: Fajar" autocomplete="off" /></div>
+        <div><label for="nama">Nama</label><input type="text" id="nama" placeholder="" autocomplete="off" /></div>
         <div><label for="tanggal">Tanggal</label><input type="date" id="tanggal" /></div>
         <!-- FIX #9: Status kehadiran -->
         <div><label for="statusKehadiran">Status</label>
           <select id="statusKehadiran">
             <option value="hadir">✅ Hadir</option>
             <option value="izin">📋 Izin</option>
-            <option value="sakit">🤒 Sakit</option>
             <option value="libur">🏖️ Libur</option>
           </select>
         </div>
         <div><label for="jamMasuk">Jam Masuk</label><input type="time" id="jamMasuk" /></div>
         <div><label for="jamPulang">Jam Pulang</label><input type="time" id="jamPulang" /></div>
         <!-- FIX #4: Field catatan -->
-        <div class="grid-full"><label for="catatan">Catatan (opsional)</label><textarea id="catatan" placeholder="Contoh: lembur, tugas khusus, dll..."></textarea></div>
+        <div class="grid-full"><label for="catatan">Catatan (opsional)</label><textarea id="catatan" placeholder=""></textarea></div>
       </div>
 
       <div class="actions form-actions">
@@ -366,6 +364,7 @@
   <script>
     // FIX #3: Tarif dari localStorage
     let GAJI_PER_JAM = parseInt(localStorage.getItem("gajiPerJam")) || 11000;
+    let BONUS_AKTIF = localStorage.getItem("bonusAktif") !== "off";
 
     let data = JSON.parse(localStorage.getItem("absensiPro")) || JSON.parse(localStorage.getItem("absensi")) || [];
     let editId = null;
@@ -410,6 +409,24 @@
       el("labelRate").innerText = `${rupiah(GAJI_PER_JAM)} / jam`;
     }
 
+    function toggleBonus(){
+      BONUS_AKTIF=!BONUS_AKTIF;
+      localStorage.setItem("bonusAktif",BONUS_AKTIF?"on":"off");
+      const btn=el("btnToggleBonus");
+      btn.innerText=BONUS_AKTIF?"ON":"OFF";
+      btn.style.color=BONUS_AKTIF?"#86efac":"var(--muted)";
+      btn.style.borderColor=BONUS_AKTIF?"rgba(34,197,94,.4)":"rgba(255,255,255,.2)";
+      render();
+    }
+
+    function updateBonusBtn(){
+      const btn=el("btnToggleBonus");
+      if(!btn)return;
+      btn.innerText=BONUS_AKTIF?"ON":"OFF";
+      btn.style.color=BONUS_AKTIF?"#86efac":"var(--muted)";
+      btn.style.borderColor=BONUS_AKTIF?"rgba(34,197,94,.4)":"rgba(255,255,255,.2)";
+    }
+
     function bonusBulanan(totalMenit){
       const jam=totalMenit/60;
       if(jam>250)return{nominal:800000,info:"Lebih dari 250 jam"};
@@ -420,20 +437,18 @@
 
     // Label untuk UI (dengan emoji)
     function labelStatus(status){
-      const map={hadir:"✅ Hadir",izin:"📋 Izin",sakit:"🤒 Sakit",libur:"🏖️ Libur"};
+      const map={hadir:"✅ Hadir",izin:"📋 Izin",libur:"🏖️ Libur"};
       return map[status]||"✅ Hadir";
     }
     // Label untuk PDF (tanpa emoji, jsPDF tidak support)
     function normalizeStatus(status){
-      // Handle status lama yang mungkin tersimpan dengan emoji atau format berbeda
       const s=(status||"").toLowerCase().replace(/[^a-z]/g,"");
       if(s.includes("libur"))return"libur";
       if(s.includes("izin"))return"izin";
-      if(s.includes("sakit"))return"sakit";
       return"hadir";
     }
     function labelStatusPDF(status){
-      const map={hadir:"Hadir",izin:"Izin",sakit:"Sakit",libur:"Libur"};
+      const map={hadir:"Hadir",izin:"Izin",libur:"Libur"};
       return map[normalizeStatus(status)]||"Hadir";
     }
     function classStatus(status){
@@ -504,8 +519,9 @@
       const bonus=bonusBulanan(totalMenit);
       el("statJam").innerText=formatDurasiPendek(totalMenit);
       el("statGaji").innerText=rupiah(gaji);
-      el("statBonus").innerText=rupiah(bonus.nominal);
-      el("statBonusInfo").innerText=bonus.info;
+      el("statBonus").innerText=BONUS_AKTIF?rupiah(bonus.nominal):"—";
+      el("statBonusInfo").innerText=BONUS_AKTIF?bonus.info:"Bonus dinonaktifkan";
+      updateBonusBtn();
       el("statData").innerText=list.length;
       el("statPeriode").innerText=periodeText();
       el("listHint").innerText=`${list.length} data`;
